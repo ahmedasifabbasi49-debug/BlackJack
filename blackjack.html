@@ -1,0 +1,2620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casino Royale — Blackjack</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #d4af37;
+  --gold-light: #f0d878;
+  --gold-dark: #8b6914;
+  --felt: #0b4d2e;
+  --felt-light: #116040;
+  --dark: #080810;
+  --darker: #030306;
+  --red: #c0392b;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--darker);
+  color: var(--gold);
+  font-family: 'Montserrat', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+/* STARS */
+#starfield { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+.star {
+  position:absolute; border-radius:50%; background:rgba(255,255,255,0.8);
+  animation: twinkle var(--d,3s) var(--del,0s) infinite alternate ease-in-out;
+}
+@keyframes twinkle { from{opacity:0.1;transform:scale(0.8);} to{opacity:0.9;transform:scale(1.2);} }
+
+/* WRAPPER */
+.game-wrapper {
+  position:relative; z-index:1;
+  min-height:100vh;
+  display:flex; flex-direction:column; align-items:center;
+  padding:0 12px 24px;
+}
+
+/* HEADER */
+.game-header { text-align:center; padding:16px 0 8px; width:100%; }
+.logo-row { display:flex; align-items:center; justify-content:center; gap:14px; }
+.logo-diamond { color:var(--gold); font-size:1.2rem; animation:pulse 2s infinite alternate; }
+@keyframes pulse { from{opacity:0.4;} to{opacity:1;} }
+.game-title {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.6rem,4vw,2.6rem);
+  font-weight:900; letter-spacing:0.18em; text-transform:uppercase;
+  background:linear-gradient(135deg,#8b6914 0%,#d4af37 40%,#f0d878 55%,#d4af37 70%,#8b6914 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  filter:drop-shadow(0 2px 8px rgba(212,175,55,0.5));
+}
+.subtitle {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(0.7rem,2vw,0.95rem);
+  letter-spacing:0.5em; color:#b8a060; text-transform:uppercase; margin-top:2px;
+}
+.header-rule {
+  width:340px; max-width:90vw; margin:8px auto 0;
+  height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent);
+}
+
+/* TABLE */
+.table-container { width:100%; max-width:940px; margin:10px 0 14px; }
+.table-felt {
+  background:radial-gradient(ellipse 90% 80% at 50% 40%, var(--felt-light) 0%, var(--felt) 55%, #083520 100%);
+  border-radius:180px / 90px;
+  border:4px solid transparent; background-clip:padding-box;
+  box-shadow:0 0 0 4px var(--gold-dark),0 0 0 7px #1a0e00,0 0 70px rgba(0,0,0,0.9),inset 0 2px 40px rgba(0,0,0,0.4);
+  padding:28px 44px 36px;
+  position:relative; min-height:470px;
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+}
+.table-felt::before {
+  content:''; position:absolute; inset:0; border-radius:180px / 90px;
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px),
+    repeating-linear-gradient(90deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+  pointer-events:none;
+}
+.table-arc-text {
+  position:absolute; top:20px; left:50%; transform:translateX(-50%);
+  font-size:0.6rem; letter-spacing:0.3em; color:rgba(212,175,55,0.3);
+  text-transform:uppercase; white-space:nowrap;
+}
+
+/* DEALER SECTION */
+.dealer-section {
+  width:100%; display:flex; align-items:flex-start; justify-content:center; gap:28px; margin-top:10px;
+}
+.dealer-portrait-wrap { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+.dealer-portrait {
+  width:90px; height:115px; border-radius:50% 50% 45% 45%/40% 40% 60% 60%;
+  border:2px solid var(--gold-dark);
+  box-shadow:0 0 20px rgba(0,0,0,0.8),0 0 6px rgba(212,175,55,0.3);
+  background:#1a1a2e; overflow:hidden;
+}
+.dealer-name { font-family:'Playfair Display',serif; font-size:0.65rem; letter-spacing:0.15em; color:rgba(212,175,55,0.7); margin-top:4px; text-transform:uppercase; }
+.dealer-cards-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; }
+.hand-label { font-size:0.58rem; letter-spacing:0.2em; color:rgba(212,175,55,0.5); text-transform:uppercase; }
+.cards-row { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; min-height:0; align-items:center; }
+.hand-score {
+  font-family:'Playfair Display',serif; font-size:1.2rem; font-weight:700;
+  color:var(--gold-light); min-height:1.5rem; text-shadow:0 0 10px rgba(212,175,55,0.5);
+  transition:all 0.2s;
+}
+.hand-score.bust { color:#ff4444 !important; text-shadow:0 0 10px rgba(255,68,68,0.7) !important; }
+.hand-score.bj   { color:#fff !important; text-shadow:0 0 20px rgba(255,220,50,1) !important; animation:bjGlow 0.8s ease infinite alternate; }
+@keyframes bjGlow { from{text-shadow:0 0 10px rgba(255,220,50,0.6);} to{text-shadow:0 0 30px rgba(255,220,50,1),0 0 60px rgba(255,220,50,0.5);} }
+
+/* SHOE */
+.shoe-wrap { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.shoe-box {
+  width:38px; height:60px; background:linear-gradient(135deg,#1a0a00,#3d2000);
+  border:1px solid var(--gold-dark); border-radius:3px 3px 2px 2px;
+  box-shadow:2px 2px 8px rgba(0,0,0,0.7); position:relative; overflow:hidden;
+}
+.shoe-box::after {
+  content:''; position:absolute; top:0; left:0; right:0; height:8px;
+  background:var(--gold-dark); border-radius:3px 3px 0 0;
+}
+.shoe-count { font-size:0.5rem; color:rgba(212,175,55,0.4); letter-spacing:0.1em; }
+
+/* TABLE CENTER */
+.table-center { display:flex; flex-direction:column; align-items:center; gap:6px; padding:4px 0; width:100%; }
+.game-message {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1rem,2.5vw,1.4rem); letter-spacing:0.05em;
+  color:var(--gold); text-align:center; min-height:1.7rem;
+  transition:color 0.3s; text-shadow:0 0 15px rgba(212,175,55,0.5);
+}
+.game-message.win  { color:#ffe566; animation:winPulse 0.7s ease infinite alternate; }
+.game-message.lose { color:#ff6666; text-shadow:0 0 12px rgba(255,80,80,0.6); }
+.game-message.push { color:#88bbff; }
+@keyframes winPulse { from{text-shadow:0 0 10px rgba(255,220,50,0.5);} to{text-shadow:0 0 35px rgba(255,220,50,1),0 0 70px rgba(255,220,50,0.4);} }
+.table-rule { width:200px; height:1px; background:linear-gradient(90deg,transparent,rgba(212,175,55,0.3),transparent); }
+
+/* PLAYER SECTION */
+.player-section { width:100%; display:flex; flex-direction:column; align-items:center; gap:6px; }
+.player-hands-row { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; }
+.hand-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; position:relative; }
+.hand-wrap.active-hand::before {
+  content:''; position:absolute; inset:-10px; border:1px solid rgba(212,175,55,0.5);
+  border-radius:10px; animation:activeGlow 1s ease infinite alternate; pointer-events:none;
+  display:none;
+}
+.game-in-play .hand-wrap.active-hand::before { display:block; }
+@keyframes activeGlow { from{box-shadow:0 0 6px rgba(212,175,55,0.2);} to{box-shadow:0 0 20px rgba(212,175,55,0.6);} }
+
+/* CARDS */
+.card {
+  width:70px; height:100px; border-radius:8px;
+  flex-shrink:0; animation:dealIn 0.38s cubic-bezier(0.22,0.61,0.36,1) both;
+  position:relative;
+}
+@keyframes dealIn {
+  from{opacity:0;transform:translateY(-50px) rotateZ(-4deg) scale(0.85);}
+  to  {opacity:1;transform:translateY(0) rotateZ(0deg) scale(1);}
+}
+.card-face {
+  position:absolute; inset:0; border-radius:8px;
+  background:#fefefe; border:1px solid #e0e0e0;
+  box-shadow:0 5px 18px rgba(0,0,0,0.7);
+  display:flex; flex-direction:column; padding:4px 6px; color:#111;
+}
+.card-back {
+  position:absolute; inset:0; border-radius:8px;
+  background:#09123d; border:2px solid var(--gold-dark);
+  box-shadow:0 5px 18px rgba(0,0,0,0.7);
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+.card-back-inner {
+  width:82%; height:82%; border:1px solid rgba(212,175,55,0.5); border-radius:3px;
+  display:flex; align-items:center; justify-content:center; position:relative;
+}
+.card-back-inner::before {
+  content:''; position:absolute; inset:4px; border:1px solid rgba(212,175,55,0.25);
+  border-radius:2px;
+  background:repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(212,175,55,0.08) 5px,rgba(212,175,55,0.08) 6px),
+             repeating-linear-gradient(-45deg,transparent,transparent 5px,rgba(212,175,55,0.06) 5px,rgba(212,175,55,0.06) 6px);
+}
+.card-back-center { font-size:1.5rem; color:rgba(212,175,55,0.55); z-index:1; }
+.card-rank-top { font-family:'Playfair Display',serif; font-size:0.88rem; font-weight:700; line-height:1; }
+.card-suit-top { font-size:0.68rem; line-height:1; margin-top:1px; }
+.card-center   { flex:1; display:flex; align-items:center; justify-content:center; font-size:2.1rem; }
+.card-rank-bot { font-family:'Playfair Display',serif; font-size:0.88rem; font-weight:700; line-height:1; align-self:flex-end; transform:rotate(180deg); }
+.card-suit-bot { font-size:0.68rem; line-height:1; align-self:flex-end; transform:rotate(180deg); }
+.card.red .card-rank-top,.card.red .card-suit-top,
+.card.red .card-center,.card.red .card-rank-bot,.card.red .card-suit-bot { color:#c0392b; }
+
+/* GLOW DIVIDER */
+.glow-divider { width:100%; max-width:940px; height:1px; background:linear-gradient(90deg,transparent,rgba(212,175,55,0.35),transparent); margin:4px 0; }
+
+/* ═══════════════════════════════════
+   HUD PANEL — balance / bet display
+   ═══════════════════════════════════ */
+.hud-panel {
+  width:100%; max-width:940px;
+  display:flex; align-items:stretch;
+  background:linear-gradient(135deg,rgba(8,8,20,0.97),rgba(12,12,28,0.97));
+  border:1px solid var(--gold-dark); border-radius:10px;
+  box-shadow:0 0 24px rgba(0,0,0,0.6),inset 0 1px rgba(212,175,55,0.08);
+  overflow:hidden;
+}
+.hud-cell {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:14px 12px; gap:5px;
+}
+.hud-cell + .hud-cell { border-left:1px solid rgba(212,175,55,0.12); }
+.hud-cell-label {
+  font-size:0.58rem; font-weight:600; letter-spacing:0.28em;
+  color:rgba(212,175,55,0.45); text-transform:uppercase;
+}
+.hud-cell-value {
+  font-family:'Playfair Display',serif;
+  font-size:clamp(1.4rem,3vw,2rem); font-weight:900;
+  letter-spacing:0.02em; line-height:1;
+  color:var(--gold-light); transition:all 0.3s;
+}
+.hud-cell-value.bet-active { color:#ffffff; text-shadow:0 0 16px rgba(255,255,255,0.4); }
+.hud-cell-value.net-pos { color:#55ff88; text-shadow:0 0 12px rgba(80,255,120,0.5); }
+.hud-cell-value.net-neg { color:#ff6666; }
+.hud-cell-value.net-zero { color:#aaaaaa; }
+
+/* ═══════════════════════════════════
+   BETTING PANEL
+   ═══════════════════════════════════ */
+.betting-panel {
+  width:100%; max-width:940px;
+  background:rgba(6,6,16,0.7);
+  border:1px solid rgba(212,175,55,0.12); border-radius:10px;
+  padding:20px 24px 22px;
+  display:flex; flex-direction:column; align-items:center; gap:18px;
+}
+.betting-panel-title {
+  font-size:0.6rem; letter-spacing:0.3em; color:rgba(212,175,55,0.4); text-transform:uppercase;
+}
+.chips-row { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; }
+
+.chip {
+  width:82px; height:82px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative;
+  transition:transform 0.15s, box-shadow 0.15s;
+  font-family:'Playfair Display',serif; font-weight:700;
+  font-size:1rem; letter-spacing:0.02em;
+  flex-direction:column; gap:1px;
+}
+.chip:hover { transform:translateY(-5px) scale(1.08); }
+.chip:active { transform:translateY(0) scale(0.96); }
+.chip::before {
+  content:''; position:absolute; inset:5px; border-radius:50%;
+  border:2px dashed rgba(255,255,255,0.3); pointer-events:none;
+}
+/* Chip colors */
+.chip-5   { background:radial-gradient(circle at 35% 35%,#e74c3c,#8e1e11); border:3px solid #f5b7b1; color:#fff; box-shadow:0 5px 16px rgba(231,76,60,0.7),inset 0 1px rgba(255,255,255,0.2); }
+.chip-25  { background:radial-gradient(circle at 35% 35%,#2ecc71,#1a7a42); border:3px solid #a9dfbf; color:#fff; box-shadow:0 5px 16px rgba(46,204,113,0.7),inset 0 1px rgba(255,255,255,0.2); }
+.chip-100 { background:radial-gradient(circle at 35% 35%,#34495e,#1a252f); border:3px solid #aab6c0; color:var(--gold-light); box-shadow:0 5px 16px rgba(0,0,0,0.8),inset 0 1px rgba(255,255,255,0.12); }
+.chip-500 { background:radial-gradient(circle at 35% 35%,#9b59b6,#5b2c6f); border:3px solid #d7bde2; color:#fff; box-shadow:0 5px 16px rgba(155,89,182,0.7),inset 0 1px rgba(255,255,255,0.2); }
+.chip-label { font-size:0.62rem; opacity:0.65; font-family:'Montserrat',sans-serif; font-weight:600; letter-spacing:0.05em; }
+
+.bet-controls-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center; }
+.bet-clear-btn, .bet-last-btn {
+  background:rgba(255,255,255,0.06); color:var(--gold);
+  border:1px solid rgba(212,175,55,0.25); border-radius:6px;
+  padding:10px 20px; font-size:0.75rem; letter-spacing:0.1em;
+  text-transform:uppercase; font-family:'Montserrat',sans-serif; font-weight:600;
+  cursor:pointer; transition:all 0.18s;
+}
+.bet-clear-btn:hover,.bet-last-btn:hover { background:rgba(255,255,255,0.12); }
+.bet-clear-btn:disabled,.bet-last-btn:disabled { opacity:0.3; cursor:not-allowed; }
+
+.deal-btn {
+  background:linear-gradient(135deg,#8b6914,#d4af37,#8b6914);
+  color:#1a0e00; border:none; border-radius:6px;
+  padding:13px 48px; font-size:1rem; letter-spacing:0.2em; font-weight:700;
+  font-family:'Montserrat',sans-serif; text-transform:uppercase;
+  cursor:pointer; box-shadow:0 4px 18px rgba(212,175,55,0.6);
+  transition:all 0.18s; position:relative; overflow:hidden;
+}
+.deal-btn::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent); pointer-events:none; }
+.deal-btn:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 26px rgba(212,175,55,0.9); }
+.deal-btn:active:not(:disabled) { transform:translateY(1px); }
+.deal-btn:disabled { opacity:0.35; cursor:not-allowed; transform:none; }
+
+/* ═══════════════════════════════════
+   ACTION PANEL
+   ═══════════════════════════════════ */
+.action-panel {
+  width:100%; max-width:940px;
+  display:flex; gap:12px; flex-wrap:wrap; justify-content:center;
+  padding:10px 0;
+}
+.act-btn {
+  padding:14px 30px; min-width:110px;
+  border:none; border-radius:7px; cursor:pointer;
+  font-family:'Montserrat',sans-serif; font-weight:700;
+  font-size:0.85rem; letter-spacing:0.12em; text-transform:uppercase;
+  transition:all 0.18s; position:relative; overflow:hidden;
+}
+.act-btn::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,0.12),transparent); pointer-events:none; }
+.act-btn:hover:not(:disabled) { transform:translateY(-3px); }
+.act-btn:active:not(:disabled) { transform:translateY(1px); }
+.act-btn:disabled { opacity:0.3; cursor:not-allowed; transform:none !important; }
+.btn-hit    { background:linear-gradient(135deg,#1a5c28,#27ae60); color:#fff; box-shadow:0 4px 14px rgba(39,174,96,0.55); }
+.btn-hit:hover:not(:disabled)    { box-shadow:0 6px 22px rgba(39,174,96,0.9); }
+.btn-stand  { background:linear-gradient(135deg,#7b1111,#c0392b); color:#fff; box-shadow:0 4px 14px rgba(192,57,43,0.55); }
+.btn-stand:hover:not(:disabled)  { box-shadow:0 6px 22px rgba(192,57,43,0.9); }
+.btn-double { background:linear-gradient(135deg,#14448a,#2980b9); color:#fff; box-shadow:0 4px 14px rgba(41,128,185,0.55); }
+.btn-double:hover:not(:disabled) { box-shadow:0 6px 22px rgba(41,128,185,0.9); }
+.btn-split  { background:linear-gradient(135deg,#5b2c6f,#8e44ad); color:#fff; box-shadow:0 4px 14px rgba(142,68,173,0.55); }
+.btn-split:hover:not(:disabled)  { box-shadow:0 6px 22px rgba(142,68,173,0.9); }
+.btn-insure { background:linear-gradient(135deg,#6d4c00,#d4af37); color:#1a0e00; box-shadow:0 4px 14px rgba(212,175,55,0.5); }
+.btn-new-round {
+  background:linear-gradient(135deg,#8b6914,#d4af37,#8b6914);
+  color:#1a0e00; border:none; border-radius:7px;
+  padding:14px 56px; font-size:1rem; letter-spacing:0.2em; font-weight:700;
+  font-family:'Montserrat',sans-serif; text-transform:uppercase; cursor:pointer;
+  box-shadow:0 4px 18px rgba(212,175,55,0.6); transition:all 0.18s;
+}
+.btn-new-round:hover { transform:translateY(-2px); box-shadow:0 6px 26px rgba(212,175,55,0.9); }
+
+/* ═══════════════════════════════════
+   INSURANCE PROMPT
+   ═══════════════════════════════════ */
+.insurance-prompt {
+  width:100%; max-width:400px;
+  background:rgba(8,8,20,0.97); border:1px solid var(--gold-dark); border-radius:10px;
+  padding:20px 28px; text-align:center;
+  display:none; flex-direction:column; gap:12px;
+  box-shadow:0 0 40px rgba(0,0,0,0.9);
+}
+.insurance-prompt.visible { display:flex; }
+.insurance-prompt h3 { font-family:'Playfair Display',serif; color:var(--gold); font-size:1.1rem; }
+.insurance-prompt p { font-size:0.78rem; color:#aaa; line-height:1.5; }
+.insurance-buttons { display:flex; gap:12px; justify-content:center; }
+
+/* ═══════════════════════════════════
+   KEYBOARD HINT
+   ═══════════════════════════════════ */
+.key-hint {
+  font-size:0.55rem; color:rgba(212,175,55,0.3);
+  letter-spacing:0.15em; text-align:center;
+}
+
+/* ═══════════════════════════════════
+   BOTTOM STATS BAR
+   ═══════════════════════════════════ */
+.stats-bar {
+  width:100%; max-width:940px;
+  display:flex; align-items:center; justify-content:center;
+  gap:20px; flex-wrap:wrap;
+  padding:10px 20px;
+  background:rgba(0,0,0,0.35); border:1px solid rgba(212,175,55,0.1); border-radius:6px;
+}
+.stat { display:flex; flex-direction:column; align-items:center; gap:1px; }
+.stat-label { font-size:0.52rem; letter-spacing:0.2em; color:rgba(212,175,55,0.38); text-transform:uppercase; }
+.stat-value { font-family:'Playfair Display',serif; font-size:1rem; font-weight:700; color:var(--gold-light); }
+.stat-divider { color:rgba(212,175,55,0.2); font-size:0.55rem; }
+
+/* ═══════════════════════════════════
+   VISUAL FX
+   ═══════════════════════════════════ */
+.confetti-piece {
+  position:fixed; top:-12px; border-radius:2px;
+  animation:confettiFall linear both; pointer-events:none; z-index:999;
+}
+@keyframes confettiFall { 0%{transform:translateY(0) rotate(0deg);opacity:1;} 100%{transform:translateY(110vh) rotate(720deg);opacity:0;} }
+
+.result-flash { position:fixed; inset:0; pointer-events:none; z-index:100; animation:rFlash 1s ease both; }
+.result-flash.win  { background:radial-gradient(ellipse,rgba(212,175,55,0.18),transparent 70%); }
+.result-flash.lose { background:radial-gradient(ellipse,rgba(192,57,43,0.18),transparent 70%); }
+@keyframes rFlash { 0%,100%{opacity:0;} 20%,80%{opacity:1;} }
+
+@keyframes shake {
+  0%,100%{transform:translateX(0);}
+  20%{transform:translateX(-7px);}
+  40%{transform:translateX(7px);}
+  60%{transform:translateX(-4px);}
+  80%{transform:translateX(4px);}
+}
+
+/* ═══════════════════════════════════
+   TABLE BET CHIPS
+   ═══════════════════════════════════ */
+.table-chips-zone {
+  display:flex; align-items:flex-end; justify-content:center;
+  gap:16px; height:88px; overflow:visible; flex-shrink:0;
+}
+.tbl-stack {
+  position:relative; width:48px; height:88px; flex-shrink:0;
+}
+.tbl-chip {
+  position:absolute; left:0; width:48px; height:48px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Playfair Display',serif; font-weight:700;
+  font-size:0.62rem; letter-spacing:0.01em;
+  animation:chipDropIn 0.22s cubic-bezier(0.22,0.61,0.36,1) both;
+}
+.tbl-chip::before {
+  content:''; position:absolute; inset:4px; border-radius:50%;
+  border:1.5px dashed rgba(255,255,255,0.28); pointer-events:none;
+}
+.tbl-chip-5   { background:radial-gradient(circle at 35% 35%,#e74c3c,#8e1e11); border:2px solid #f5b7b1; color:#fff; box-shadow:0 3px 10px rgba(231,76,60,0.7),inset 0 1px rgba(255,255,255,0.2); }
+.tbl-chip-25  { background:radial-gradient(circle at 35% 35%,#2ecc71,#1a7a42); border:2px solid #a9dfbf; color:#fff; box-shadow:0 3px 10px rgba(46,204,113,0.6),inset 0 1px rgba(255,255,255,0.2); }
+.tbl-chip-100 { background:radial-gradient(circle at 35% 35%,#34495e,#1a252f); border:2px solid #aab6c0; color:#f0d878; box-shadow:0 3px 10px rgba(0,0,0,0.8),inset 0 1px rgba(255,255,255,0.1); }
+.tbl-chip-500 { background:radial-gradient(circle at 35% 35%,#9b59b6,#5b2c6f); border:2px solid #d7bde2; color:#fff; box-shadow:0 3px 10px rgba(155,89,182,0.7),inset 0 1px rgba(255,255,255,0.2); }
+.tbl-stack-label {
+  position:absolute; bottom:-17px; left:0; width:48px;
+  text-align:center; font-size:0.52rem;
+  color:rgba(212,175,55,0.55); letter-spacing:0.06em;
+  font-family:'Montserrat',sans-serif; font-weight:600;
+}
+@keyframes chipDropIn {
+  from{opacity:0;transform:translateY(-18px) scale(0.75);}
+  to  {opacity:1;transform:translateY(0) scale(1);}
+}
+
+/* ═══════════════════════════════════
+   DEALER QUOTE BUBBLE
+   ═══════════════════════════════════ */
+.dealer-quote {
+  font-family:'Playfair Display',serif;
+  font-style:italic;
+  font-size:clamp(0.72rem,2vw,0.85rem);
+  color:rgba(212,175,55,0.75);
+  text-align:center;
+  letter-spacing:0.03em;
+  line-height:1.45;
+  padding:0 24px;
+  min-height:1.3rem;
+  max-width:560px;
+  opacity:0;
+  transform:translateY(-6px);
+  transition:opacity 0.5s ease, transform 0.5s ease;
+  pointer-events:none;
+}
+.dealer-quote.show { opacity:1; transform:translateY(0); }
+
+/* ═══════════════════════════════════
+   RULES PANEL
+   ═══════════════════════════════════ */
+/* Rules toggle — small header button */
+.rules-toggle-btn {
+  display:inline-flex; align-items:center; gap:5px;
+  background:transparent; border:none;
+  color:rgba(212,175,55,0.45);
+  font-family:'Montserrat',sans-serif;
+  font-size:0.57rem; font-weight:600;
+  letter-spacing:0.2em; text-transform:uppercase;
+  cursor:pointer; margin-top:7px;
+  padding:4px 10px; border-radius:4px;
+  transition:color 0.2s, background 0.2s;
+}
+.rules-toggle-btn:hover { color:var(--gold); background:rgba(212,175,55,0.06); }
+.rules-toggle-btn .rules-arrow { font-size:0.5rem; transition:transform 0.3s; display:inline-block; }
+.rules-toggle-btn.open .rules-arrow { transform:rotate(180deg); }
+
+/* Rules overlay */
+.rules-overlay {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(3px);
+  z-index:400;
+  opacity:0; visibility:hidden;
+  transition:opacity 0.3s, visibility 0.3s;
+}
+.rules-overlay.open { opacity:1; visibility:visible; }
+
+/* Rules panel — fixed LEFT side, does NOT move page content */
+.rules-panel {
+  position:fixed; top:0; left:0; bottom:0;
+  width:360px; max-width:90vw;
+  background:linear-gradient(180deg,#050510 0%,#07071a 100%);
+  border-right:1px solid rgba(212,175,55,0.18);
+  box-shadow:12px 0 50px rgba(0,0,0,0.85);
+  z-index:401;
+  transform:translateX(-100%);
+  transition:transform 0.36s cubic-bezier(0.25,0.46,0.45,0.94);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+.rules-panel.open { transform:translateX(0); }
+
+.rules-panel-header {
+  padding:22px 18px 16px;
+  border-bottom:1px solid rgba(212,175,55,0.1);
+  display:flex; align-items:flex-start; justify-content:space-between;
+  flex-shrink:0;
+}
+.rules-panel-title {
+  font-family:'Playfair Display',serif;
+  font-size:1.15rem; font-weight:700; color:var(--gold); letter-spacing:0.08em;
+}
+.rules-panel-sub {
+  font-size:0.54rem; letter-spacing:0.22em; color:rgba(212,175,55,0.38);
+  text-transform:uppercase; margin-top:3px;
+}
+.rules-panel-close {
+  width:32px; height:32px;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(212,175,55,0.15);
+  border-radius:6px; color:rgba(212,175,55,0.6); font-size:1rem;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0; transition:all 0.15s;
+}
+.rules-panel-close:hover { background:rgba(255,255,255,0.12); color:var(--gold); }
+
+.rules-scroll {
+  flex:1; overflow-y:auto; padding:14px 18px;
+}
+.rules-scroll::-webkit-scrollbar { width:3px; }
+.rules-scroll::-webkit-scrollbar-track { background:transparent; }
+.rules-scroll::-webkit-scrollbar-thumb { background:rgba(212,175,55,0.25); border-radius:2px; }
+
+.rules-section-title {
+  font-size:0.55rem; font-weight:700; letter-spacing:0.25em;
+  color:rgba(212,175,55,0.4); text-transform:uppercase;
+  margin:14px 0 8px; padding-bottom:5px;
+  border-bottom:1px solid rgba(212,175,55,0.1);
+}
+.rules-section-title:first-child { margin-top:0; }
+.rules-row {
+  display:flex; gap:12px; align-items:flex-start;
+  padding:8px 0;
+  border-bottom:1px solid rgba(212,175,55,0.05);
+}
+.rules-row:last-child { border-bottom:none; }
+.rules-key {
+  font-size:0.6rem; font-weight:700; letter-spacing:0.1em;
+  color:rgba(212,175,55,0.6); text-transform:uppercase;
+  flex-shrink:0; width:88px; padding-top:1px;
+}
+.rules-val { font-size:0.72rem; color:#a8a8be; line-height:1.5; }
+.rules-val strong { color:var(--gold-light); font-weight:600; }
+
+.rules-panel-footer {
+  padding:12px 18px;
+  border-top:1px solid rgba(212,175,55,0.08);
+  font-size:0.54rem; letter-spacing:0.12em;
+  color:rgba(212,175,55,0.22); text-align:center;
+  text-transform:uppercase; flex-shrink:0;
+}
+
+/* ═══════════════════════════════════
+   CHANGE DEALER BUTTON
+   ═══════════════════════════════════ */
+.change-dealer-btn {
+  margin-top:4px;
+  background:rgba(212,175,55,0.07);
+  border:1px solid rgba(212,175,55,0.22);
+  color:rgba(212,175,55,0.55);
+  border-radius:4px; padding:4px 11px;
+  font-size:0.52rem; letter-spacing:0.18em; text-transform:uppercase;
+  font-family:'Montserrat',sans-serif; font-weight:600;
+  cursor:pointer; transition:all 0.2s;
+}
+.change-dealer-btn:hover {
+  background:rgba(212,175,55,0.16);
+  border-color:rgba(212,175,55,0.5); color:var(--gold);
+}
+
+/* ═══════════════════════════════════
+   DEALER SIDE PANEL
+   ═══════════════════════════════════ */
+.dp-overlay {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.65);
+  backdrop-filter:blur(4px);
+  z-index:400;
+  opacity:0; visibility:hidden;
+  transition:opacity 0.3s, visibility 0.3s;
+}
+.dp-overlay.open { opacity:1; visibility:visible; }
+
+.dp-panel {
+  position:fixed; top:0; right:0; bottom:0;
+  width:300px; max-width:88vw;
+  background:linear-gradient(180deg,#050510 0%,#07071a 100%);
+  border-left:1px solid rgba(212,175,55,0.2);
+  box-shadow:-12px 0 50px rgba(0,0,0,0.85);
+  z-index:401;
+  transform:translateX(100%);
+  transition:transform 0.36s cubic-bezier(0.25,0.46,0.45,0.94);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+.dp-panel.open { transform:translateX(0); }
+
+.dp-header {
+  padding:22px 18px 16px;
+  border-bottom:1px solid rgba(212,175,55,0.1);
+  display:flex; align-items:flex-start; justify-content:space-between;
+  flex-shrink:0;
+}
+.dp-header-text {}
+.dp-title {
+  font-family:'Playfair Display',serif;
+  font-size:1.15rem; font-weight:700; color:var(--gold);
+  letter-spacing:0.08em;
+}
+.dp-subtitle {
+  font-size:0.54rem; letter-spacing:0.25em; color:rgba(212,175,55,0.38);
+  text-transform:uppercase; margin-top:3px;
+}
+.dp-close {
+  width:32px; height:32px;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(212,175,55,0.15);
+  border-radius:6px; color:rgba(212,175,55,0.6); font-size:1rem;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0; transition:all 0.15s;
+}
+.dp-close:hover { background:rgba(255,255,255,0.12); color:var(--gold); }
+
+.dp-list {
+  flex:1; overflow-y:auto; padding:12px;
+  display:flex; flex-direction:column; gap:9px;
+}
+.dp-list::-webkit-scrollbar { width:3px; }
+.dp-list::-webkit-scrollbar-track { background:transparent; }
+.dp-list::-webkit-scrollbar-thumb { background:rgba(212,175,55,0.25); border-radius:2px; }
+
+.dp-card {
+  display:flex; align-items:center; gap:13px;
+  padding:11px 13px;
+  background:rgba(255,255,255,0.025);
+  border:1px solid rgba(212,175,55,0.08);
+  border-radius:10px; cursor:pointer;
+  transition:all 0.22s; position:relative; overflow:hidden;
+}
+.dp-card::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,rgba(212,175,55,0.06),transparent);
+  opacity:0; transition:opacity 0.22s;
+}
+.dp-card:hover { border-color:rgba(212,175,55,0.28); transform:translateX(-3px); }
+.dp-card:hover::before { opacity:1; }
+.dp-card.dp-selected {
+  background:rgba(212,175,55,0.09);
+  border-color:rgba(212,175,55,0.45);
+  box-shadow:0 0 18px rgba(212,175,55,0.12), inset 0 1px rgba(212,175,55,0.1);
+}
+.dp-selected-badge {
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  width:20px; height:20px; border-radius:50%;
+  background:linear-gradient(135deg,#8b6914,#d4af37);
+  display:flex; align-items:center; justify-content:center;
+  font-size:0.65rem; color:#1a0e00; font-weight:700;
+  opacity:0; transition:opacity 0.2s;
+}
+.dp-selected .dp-selected-badge { opacity:1; }
+
+.dp-thumb {
+  width:54px; height:68px; flex-shrink:0;
+  border-radius:50% 50% 42% 42%/38% 38% 56% 56%;
+  border:1.5px solid rgba(212,175,55,0.3);
+  background:#12122a; overflow:hidden;
+  box-shadow:0 3px 10px rgba(0,0,0,0.7);
+}
+.dp-info { flex:1; min-width:0; padding-right:24px; }
+.dp-name {
+  font-family:'Playfair Display',serif;
+  font-size:0.95rem; font-weight:700; color:var(--gold-light); line-height:1;
+}
+.dp-title-tag {
+  font-size:0.56rem; letter-spacing:0.14em; color:rgba(212,175,55,0.45);
+  text-transform:uppercase; margin-top:3px;
+}
+.dp-desc {
+  font-size:0.66rem; color:#777; margin-top:5px; font-style:italic; line-height:1.35;
+}
+
+.dp-footer {
+  padding:12px 18px;
+  border-top:1px solid rgba(212,175,55,0.08);
+  font-size:0.54rem; letter-spacing:0.15em;
+  color:rgba(212,175,55,0.25); text-align:center; text-transform:uppercase;
+  flex-shrink:0;
+}
+
+/* RESPONSIVE */
+@media (max-width:620px) {
+  .table-felt { border-radius:90px/55px; padding:16px 20px 24px; }
+  .table-felt::before { border-radius:90px/55px; }
+  .dealer-section { flex-direction:column; align-items:center; }
+  .chip { width:68px; height:68px; font-size:0.88rem; }
+  .card { width:60px; height:88px; }
+  .card-center { font-size:1.7rem; }
+  .hud-cell-value { font-size:1.3rem; }
+}
+</style>
+</head>
+<body>
+<div id="starfield"></div>
+<div class="game-wrapper">
+
+<!-- HEADER -->
+<header class="game-header">
+  <div class="logo-row">
+    <span class="logo-diamond">◆</span>
+    <h1 class="game-title">Casino Royale</h1>
+    <span class="logo-diamond">◆</span>
+  </div>
+  <div class="subtitle">Blackjack</div>
+  <div class="header-rule"></div>
+  <button class="rules-toggle-btn" id="rulesToggleBtn" onclick="toggleRules()">
+    ◈ &nbsp;How to Play&nbsp; <span class="rules-arrow">▼</span>
+  </button>
+</header>
+
+
+<!-- TABLE -->
+<div class="table-container">
+  <div class="table-felt">
+    <div class="table-arc-text">Blackjack Pays 3 to 2 &nbsp;·&nbsp; Dealer Hits Soft 17 &nbsp;·&nbsp; 6 Decks</div>
+
+    <!-- DEALER -->
+    <div class="dealer-section">
+      <div class="dealer-portrait-wrap">
+        <div class="dealer-portrait">
+          <svg id="portraitSvgEl" viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg" width="90" height="115">
+            <defs>
+              <radialGradient id="sg" cx="50%" cy="40%" r="55%">
+                <stop offset="0%" stop-color="#c8956c"/><stop offset="60%" stop-color="#b87d52"/><stop offset="100%" stop-color="#9a6238"/>
+              </radialGradient>
+              <radialGradient id="sg2" cx="50%" cy="40%" r="55%">
+                <stop offset="0%" stop-color="#bf8a60"/><stop offset="100%" stop-color="#9a6238"/>
+              </radialGradient>
+              <filter id="sb"><feGaussianBlur stdDeviation="0.5"/></filter>
+              <radialGradient id="eg" cx="40%" cy="35%" r="60%">
+                <stop offset="0%" stop-color="#4a3728"/><stop offset="100%" stop-color="#1a0f0a"/>
+              </radialGradient>
+            </defs>
+            <!-- Jacket -->
+            <path d="M10 260 L30 195 Q50 180 70 185 L80 210 L100 200 L120 210 L130 185 Q150 180 170 195 L190 260 Z" fill="#111118"/>
+            <!-- Shirt -->
+            <path d="M80 210 L100 200 L120 210 L115 230 L100 225 L85 230 Z" fill="#f5f5f5"/>
+            <!-- Bow tie -->
+            <polygon points="85,208 100,202 115,208 100,215" fill="#8b0000"/>
+            <ellipse cx="100" cy="208" rx="4" ry="3.5" fill="#a00000"/>
+            <!-- Lapels -->
+            <path d="M80 210 L60 195 L70 185 L85 200 Z" fill="#1a1a28"/>
+            <path d="M120 210 L140 195 L130 185 L115 200 Z" fill="#1a1a28"/>
+            <!-- Neck -->
+            <rect x="84" y="182" width="32" height="30" rx="8" fill="url(#sg)"/>
+            <!-- Head -->
+            <ellipse cx="100" cy="120" rx="60" ry="72" fill="url(#sg)"/>
+            <!-- Hair -->
+            <ellipse cx="100" cy="58" rx="60" ry="38" fill="#1c1c1c"/>
+            <path d="M75 42 Q100 35 125 42 Q120 50 100 48 Q80 50 75 42Z" fill="rgba(255,255,255,0.07)"/>
+            <ellipse cx="46" cy="85" rx="12" ry="20" fill="#2e2e2e"/>
+            <ellipse cx="154" cy="85" rx="12" ry="20" fill="#2e2e2e"/>
+            <ellipse cx="43" cy="88" rx="6" ry="14" fill="#555"/>
+            <ellipse cx="157" cy="88" rx="6" ry="14" fill="#555"/>
+            <!-- Ears -->
+            <ellipse cx="42" cy="125" rx="11" ry="15" fill="url(#sg2)"/>
+            <ellipse cx="158" cy="125" rx="11" ry="15" fill="url(#sg2)"/>
+            <ellipse cx="42" cy="126" rx="6" ry="10" fill="#a06a40" opacity="0.5"/>
+            <!-- Face shadow -->
+            <ellipse cx="72" cy="138" rx="18" ry="26" fill="rgba(0,0,0,0.1)"/>
+            <ellipse cx="128" cy="138" rx="18" ry="26" fill="rgba(0,0,0,0.1)"/>
+            <ellipse cx="100" cy="175" rx="44" ry="18" fill="rgba(0,0,0,0.12)"/>
+            <!-- Eyebrows -->
+            <path d="M62 100 Q78 93 94 97" stroke="#1c1c1c" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+            <path d="M106 97 Q122 93 138 100" stroke="#1c1c1c" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+            <path d="M91 97 Q100 94 109 97" stroke="#1c1c1c" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <!-- Left eye -->
+            <ellipse cx="78" cy="116" rx="16" ry="11" fill="white"/>
+            <ellipse cx="78" cy="117" rx="10" ry="9" fill="url(#eg)"/>
+            <ellipse cx="78" cy="117" rx="6" ry="6" fill="#0d0805"/>
+            <ellipse cx="74" cy="113" rx="2.5" ry="2.5" fill="rgba(255,255,255,0.65)"/>
+            <path d="M62 112 Q78 106 94 112" stroke="#3d2010" stroke-width="1.5" fill="none"/>
+            <path d="M63 122 Q78 128 93 122" stroke="rgba(61,32,16,0.4)" stroke-width="1" fill="none"/>
+            <!-- Right eye -->
+            <ellipse cx="122" cy="116" rx="16" ry="11" fill="white"/>
+            <ellipse cx="122" cy="117" rx="10" ry="9" fill="url(#eg)"/>
+            <ellipse cx="122" cy="117" rx="6" ry="6" fill="#0d0805"/>
+            <ellipse cx="118" cy="113" rx="2.5" ry="2.5" fill="rgba(255,255,255,0.65)"/>
+            <path d="M106 112 Q122 106 138 112" stroke="#3d2010" stroke-width="1.5" fill="none"/>
+            <path d="M107 122 Q122 128 137 122" stroke="rgba(61,32,16,0.4)" stroke-width="1" fill="none"/>
+            <!-- Nose -->
+            <path d="M100 128 L93 152 Q100 158 107 152 Z" fill="rgba(120,70,35,0.45)"/>
+            <ellipse cx="93" cy="152" rx="7" ry="5" fill="rgba(100,55,25,0.35)"/>
+            <ellipse cx="107" cy="152" rx="7" ry="5" fill="rgba(100,55,25,0.35)"/>
+            <!-- Mouth -->
+            <path d="M82 168 Q100 164 118 168" stroke="#7a4020" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M84 171 Q100 174 116 171" stroke="rgba(90,40,20,0.4)" stroke-width="1" fill="none" stroke-linecap="round"/>
+            <path d="M82 168 L78 172" stroke="#7a4020" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M118 168 L122 172" stroke="#7a4020" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <!-- Stubble -->
+            <ellipse cx="100" cy="170" rx="32" ry="18" fill="rgba(20,10,5,0.08)"/>
+            <g fill="rgba(30,15,5,0.22)">
+              <circle cx="85" cy="163" r="1.2"/><circle cx="90" cy="166" r="1"/><circle cx="95" cy="168" r="1.2"/>
+              <circle cx="105" cy="168" r="1"/><circle cx="110" cy="166" r="1.2"/><circle cx="115" cy="163" r="1"/>
+              <circle cx="83" cy="168" r="1"/><circle cx="117" cy="168" r="1"/><circle cx="100" cy="170" r="1.2"/>
+            </g>
+            <!-- SCAR -->
+            <path d="M75 130 L58 168" stroke="rgba(80,35,15,0.7)" stroke-width="4" fill="none" stroke-linecap="round" filter="url(#sb)"/>
+            <path d="M75 130 L58 168" stroke="#d4a882" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <path d="M76 131 L59 169" stroke="rgba(255,220,190,0.6)" stroke-width="1" fill="none" stroke-linecap="round"/>
+            <line x1="72" y1="137" x2="68" y2="135" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="70" y1="143" x2="66" y2="141" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="67" y1="150" x2="63" y2="148" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="64" y1="157" x2="60" y2="155" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M67 149 L64 153 L60 155" stroke="#d4a882" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="dealer-name" id="dealerNameTag">Viktor</div>
+        <button class="change-dealer-btn" onclick="openDealerPanel()">◈ Change</button>
+      </div>
+
+      <div class="dealer-cards-wrap">
+        <div class="hand-label">Dealer's Hand</div>
+        <div class="cards-row" id="dealerCards"></div>
+        <div class="hand-score" id="dealerScore"></div>
+      </div>
+
+      <div class="shoe-wrap">
+        <div class="shoe-box"></div>
+        <div class="shoe-count" id="shoeCount">312</div>
+      </div>
+    </div>
+
+    <!-- DEALER QUOTE -->
+    <div class="dealer-quote" id="dealerQuote"></div>
+
+    <!-- CENTER -->
+    <div class="table-center">
+      <div class="table-rule"></div>
+      <div class="game-message" id="gameMessage">Place your bet to begin</div>
+      <div class="table-chips-zone" id="tableBetChips"></div>
+      <div class="table-rule"></div>
+    </div>
+
+    <!-- PLAYER -->
+    <div class="player-section">
+      <div class="player-hands-row" id="playerHandsRow">
+        <div class="hand-wrap" id="handWrap0">
+          <div class="cards-row" id="playerCards0"></div>
+          <div class="hand-score" id="playerScore0"></div>
+        </div>
+      </div>
+      <div class="hand-label" style="margin-top:4px;">Your Hand</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="glow-divider"></div>
+
+<!-- HUD PANEL — balance / bet / net -->
+<div class="hud-panel">
+  <div class="hud-cell">
+    <div class="hud-cell-label">Balance</div>
+    <div class="hud-cell-value" id="bankDisplay">$1,000</div>
+  </div>
+  <div class="hud-cell">
+    <div class="hud-cell-label">Current Bet</div>
+    <div class="hud-cell-value" id="betDisplay">$0</div>
+  </div>
+  <div class="hud-cell">
+    <div class="hud-cell-label">Last Result</div>
+    <div class="hud-cell-value net-zero" id="lastResultDisplay">—</div>
+  </div>
+  <div class="hud-cell">
+    <div class="hud-cell-label">W / L / P</div>
+    <div class="hud-cell-value" id="wlpDisplay" style="font-size:1rem;letter-spacing:0.05em;">0 / 0 / 0</div>
+  </div>
+</div>
+
+<div class="glow-divider"></div>
+
+<!-- INSURANCE PROMPT -->
+<div class="insurance-prompt" id="insurancePrompt">
+  <h3>Insurance?</h3>
+  <p>Viktor shows an Ace. Take insurance for <strong style="color:var(--gold)">$<span id="insuranceCost">0</span></strong>?<br>Pays 2:1 if dealer has Blackjack.</p>
+  <div class="insurance-buttons">
+    <button class="act-btn btn-insure" onclick="resolveInsurance(true)">Take Insurance</button>
+    <button class="act-btn btn-stand" style="min-width:90px;" onclick="resolveInsurance(false)">No Thanks</button>
+  </div>
+</div>
+
+<!-- BETTING PANEL -->
+<div class="betting-panel" id="bettingPanel">
+  <div class="betting-panel-title">Select chips to place your bet</div>
+  <div class="chips-row">
+    <div class="chip chip-5"   onclick="addBet(5)">$5<div class="chip-label">five</div></div>
+    <div class="chip chip-25"  onclick="addBet(25)">$25<div class="chip-label">twenty-five</div></div>
+    <div class="chip chip-100" onclick="addBet(100)">$100<div class="chip-label">hundred</div></div>
+    <div class="chip chip-500" onclick="addBet(500)">$500<div class="chip-label">five hundred</div></div>
+  </div>
+  <div class="bet-controls-row">
+    <button class="bet-clear-btn" id="clearBtn" onclick="clearBet()" disabled>Clear Bet</button>
+    <button class="bet-last-btn"  id="lastBtn"  onclick="reBet()"   disabled>Last Bet</button>
+    <button class="deal-btn" id="dealBtn" onclick="startDeal()" disabled>Deal Cards</button>
+  </div>
+</div>
+
+<!-- ACTION PANEL -->
+<div class="action-panel" id="actionPanel" style="display:none;">
+  <button class="act-btn btn-hit"    id="hitBtn"    onclick="playerHit()">Hit</button>
+  <button class="act-btn btn-stand"  id="standBtn"  onclick="playerStand()">Stand</button>
+  <button class="act-btn btn-double" id="doubleBtn" onclick="playerDouble()">Double</button>
+  <button class="act-btn btn-split"  id="splitBtn"  onclick="playerSplit()" style="display:none;">Split</button>
+</div>
+
+<!-- NEW ROUND PANEL -->
+<div id="newRoundPanel" style="display:none; padding:10px 0;">
+  <button class="btn-new-round" onclick="newRound()">New Round</button>
+</div>
+
+
+<div class="glow-divider"></div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat"><div class="stat-label">Rounds Played</div><div class="stat-value" id="roundsDisplay">0</div></div>
+  <div class="stat-divider">◆</div>
+  <div class="stat"><div class="stat-label">Wins</div><div class="stat-value" id="winsDisplay">0</div></div>
+  <div class="stat-divider">◆</div>
+  <div class="stat"><div class="stat-label">Losses</div><div class="stat-value" id="lossesDisplay">0</div></div>
+  <div class="stat-divider">◆</div>
+  <div class="stat"><div class="stat-label">Pushes</div><div class="stat-value" id="pushesDisplay">0</div></div>
+  <div class="stat-divider">◆</div>
+  <div class="stat"><div class="stat-label">Net P&amp;L</div><div class="stat-value" id="netDisplay">$0</div></div>
+</div>
+
+</div><!-- /game-wrapper -->
+
+<!-- RULES OVERLAY + PANEL (fixed left, never shifts page layout) -->
+<div class="rules-overlay" id="rulesOverlay" onclick="toggleRules()"></div>
+<aside class="rules-panel" id="rulesPanel">
+  <div class="rules-panel-header">
+    <div>
+      <div class="rules-panel-title">Game Rules</div>
+      <div class="rules-panel-sub">Casino Royale Blackjack</div>
+    </div>
+    <button class="rules-panel-close" onclick="toggleRules()">✕</button>
+  </div>
+  <div class="rules-scroll">
+    <div class="rules-section-title">The Basics</div>
+    <div class="rules-row"><div class="rules-key">Objective</div><div class="rules-val">Beat the dealer by getting closer to <strong>21</strong> without going over</div></div>
+    <div class="rules-row"><div class="rules-key">Blackjack</div><div class="rules-val">Ace + any 10-value card on the first deal pays <strong>3 to 2</strong></div></div>
+    <div class="rules-row"><div class="rules-key">Bust</div><div class="rules-val">Going over 21 — you automatically <strong>lose</strong> the hand</div></div>
+    <div class="rules-row"><div class="rules-key">Push</div><div class="rules-val">Tie with the dealer — your full bet is <strong>returned</strong></div></div>
+
+    <div class="rules-section-title">Card Values</div>
+    <div class="rules-row"><div class="rules-key">2 – 10</div><div class="rules-val">Worth their <strong>face value</strong></div></div>
+    <div class="rules-row"><div class="rules-key">J, Q, K</div><div class="rules-val">Worth <strong>10</strong> each</div></div>
+    <div class="rules-row"><div class="rules-key">Ace</div><div class="rules-val">Worth <strong>1 or 11</strong> — whichever helps your hand more</div></div>
+
+    <div class="rules-section-title">Player Actions</div>
+    <div class="rules-row"><div class="rules-key">Hit</div><div class="rules-val">Take another card from the dealer</div></div>
+    <div class="rules-row"><div class="rules-key">Stand</div><div class="rules-val">Keep your hand and end your turn</div></div>
+    <div class="rules-row"><div class="rules-key">Double Down</div><div class="rules-val">Double your bet — receive exactly <strong>one more card</strong>, then automatically stand</div></div>
+    <div class="rules-row"><div class="rules-key">Split</div><div class="rules-val">Split any matching pair into two separate hands (up to <strong>4 hands</strong>) — each gets its own bet</div></div>
+    <div class="rules-row"><div class="rules-key">Insurance</div><div class="rules-val">When dealer shows an Ace, bet up to <strong>half your wager</strong> that they have Blackjack — pays <strong>2 to 1</strong></div></div>
+
+    <div class="rules-section-title">Dealer Rules</div>
+    <div class="rules-row"><div class="rules-key">Must Hit</div><div class="rules-val">Dealer hits on <strong>soft 17</strong> (Ace + 6) and any total below 17</div></div>
+    <div class="rules-row"><div class="rules-key">Must Stand</div><div class="rules-val">Dealer stands on <strong>hard 17</strong> or higher</div></div>
+    <div class="rules-row"><div class="rules-key">Shoe</div><div class="rules-val"><strong>6 decks</strong> — reshuffled automatically when the shoe runs low</div></div>
+
+    <div class="rules-section-title">Keyboard Shortcuts</div>
+    <div class="rules-row"><div class="rules-key">H</div><div class="rules-val">Hit</div></div>
+    <div class="rules-row"><div class="rules-key">S</div><div class="rules-val">Stand</div></div>
+    <div class="rules-row"><div class="rules-key">D</div><div class="rules-val">Double Down</div></div>
+    <div class="rules-row"><div class="rules-key">1 – 4</div><div class="rules-val">Add chips ($5 / $25 / $100 / $500)</div></div>
+    <div class="rules-row"><div class="rules-key">Enter</div><div class="rules-val">Deal cards / Start new round</div></div>
+  </div>
+  <div class="rules-panel-footer">Good luck at the table</div>
+</aside>
+
+<!-- DEALER PANEL OVERLAY -->
+<div class="dp-overlay" id="dpOverlay" onclick="closeDealerPanel()"></div>
+
+<!-- DEALER SIDE PANEL -->
+<aside class="dp-panel" id="dpPanel">
+  <div class="dp-header">
+    <div class="dp-header-text">
+      <div class="dp-title">Select Dealer</div>
+      <div class="dp-subtitle">5 available · Click to switch</div>
+    </div>
+    <button class="dp-close" onclick="closeDealerPanel()">✕</button>
+  </div>
+  <div class="dp-list" id="dpList"></div>
+  <div class="dp-footer">Casino Royale &nbsp;·&nbsp; Blackjack</div>
+</aside>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  AUDIO ENGINE (Web Audio API — no files needed)
+// ════════════════════════════════════════════════════════
+let _actx = null;
+function getACtx() { if (!_actx) _actx = new (window.AudioContext||window.webkitAudioContext)(); return _actx; }
+function playTone(freq, type, dur, vol=0.14, delay=0) {
+  try {
+    const c=getACtx(), o=c.createOscillator(), g=c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.type=type; o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,c.currentTime+delay);
+    g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+delay+dur);
+    o.start(c.currentTime+delay); o.stop(c.currentTime+delay+dur+0.05);
+  } catch(e){}
+}
+function playNoise(dur,vol=0.08,freq=2000,delay=0) {
+  try {
+    const c=getACtx(), n=c.sampleRate*dur, b=c.createBuffer(1,n,c.sampleRate);
+    const d=b.getChannelData(0); for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+    const s=c.createBufferSource(), f=c.createBiquadFilter(), g=c.createGain();
+    f.type='bandpass'; f.frequency.value=freq; s.buffer=b;
+    s.connect(f); f.connect(g); g.connect(c.destination);
+    g.gain.setValueAtTime(vol,c.currentTime+delay);
+    g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+delay+dur);
+    s.start(c.currentTime+delay);
+  } catch(e){}
+}
+const SFX = {
+  card:    ()=>{ playNoise(0.055,0.11,2200); playTone(750,'sine',0.04,0.05); },
+  chip:    ()=>{ playTone(1100,'sine',0.07,0.13); playTone(800,'sine',0.05,0.06,0.05); },
+  win:     ()=>{ [523,659,784,1047].forEach((f,i)=>playTone(f,'sine',0.25,0.17,i*0.1)); },
+  bj:      ()=>{ [523,659,784,1047,1319].forEach((f,i)=>playTone(f,'sine',0.3,0.19,i*0.08)); },
+  lose:    ()=>{ [380,320,260].forEach((f,i)=>playTone(f,'sawtooth',0.22,0.1,i*0.13)); },
+  bust:    ()=>{ [300,240,190].forEach((f,i)=>playTone(f,'sawtooth',0.2,0.12,i*0.11)); },
+  push:    ()=>{ playTone(440,'sine',0.32,0.1); playTone(440,'sine',0.22,0.07,0.18); },
+  flip:    ()=>{ playTone(560,'sine',0.09,0.09); },
+  shuffle: ()=>{ for(let i=0;i<5;i++) playNoise(0.06,0.05,1800,i*0.09); },
+};
+
+// ════════════════════════════════════════════════════════
+//  GAME STATE
+// ════════════════════════════════════════════════════════
+const SUITS = ['♠','♥','♦','♣'];
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const NUM_DECKS = 6;
+
+let shoe = [];
+let bank = 1000;
+let currentBet = 0;
+let lastBetAmount = 0;
+let betBreakdown = {5:0, 25:0, 100:0, 500:0};
+let playerHands = [[]];
+let dealerHand  = [];
+let currentHandIdx = 0;
+let handBets = [0];
+let insuranceBet = 0;
+let gamePhase = 'betting'; // betting | dealing | insurance | player | dealer | over
+let stats = { wins:0, losses:0, pushes:0, rounds:0 };
+let netPL = 0;
+
+// ════════════════════════════════════════════════════════
+//  SHOE
+// ════════════════════════════════════════════════════════
+function buildShoe() {
+  shoe = [];
+  for (let d=0; d<NUM_DECKS; d++)
+    for (const s of SUITS)
+      for (const r of RANKS)
+        shoe.push({rank:r, suit:s});
+  shuffle(shoe);
+}
+
+function shuffle(arr) {
+  for (let i=arr.length-1; i>0; i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+}
+
+function drawCard(hidden=false) {
+  if (shoe.length < 26) { buildShoe(); SFX.shuffle(); }
+  const c = shoe.pop();
+  document.getElementById('shoeCount').textContent = shoe.length;
+  return { rank:c.rank, suit:c.suit, hidden };
+}
+
+// ════════════════════════════════════════════════════════
+//  HAND MATH
+// ════════════════════════════════════════════════════════
+function handVal(hand) {
+  let v=0, a=0;
+  for (const c of hand) {
+    if (c.hidden) continue;
+    if (c.rank==='A') { v+=11; a++; }
+    else if ('JQK'.includes(c.rank)) v+=10;
+    else v+=parseInt(c.rank);
+  }
+  while (v>21 && a>0) { v-=10; a--; }
+  return v;
+}
+
+function isSoft(hand) {
+  let v=0, a=0;
+  for (const c of hand) {
+    if (c.rank==='A') { v+=11; a++; }
+    else if ('JQK'.includes(c.rank)) v+=10;
+    else v+=parseInt(c.rank);
+  }
+  while (v>21 && a>0) { v-=10; a--; }
+  return a>0 && v<=21;
+}
+
+function isBlackjack(hand) { return hand.length===2 && handVal(hand)===21; }
+function isBust(hand)      { return handVal(hand)>21; }
+
+// ════════════════════════════════════════════════════════
+//  BETTING
+// ════════════════════════════════════════════════════════
+function addBet(amount) {
+  if (gamePhase !== 'betting') return;
+  if (currentBet + amount > bank) { shakeBet(); return; }
+  currentBet += amount;
+  betBreakdown[amount] = (betBreakdown[amount] || 0) + 1;
+  SFX.chip();
+  refreshBetUI();
+}
+
+function clearBet() {
+  if (gamePhase !== 'betting') return;
+  currentBet = 0;
+  betBreakdown = {5:0, 25:0, 100:0, 500:0};
+  refreshBetUI();
+}
+
+function reBet() {
+  if (gamePhase !== 'betting' || !lastBetAmount) return;
+  const amt = Math.min(lastBetAmount, bank);
+  currentBet = amt;
+  betBreakdown = breakdownAmount(amt);
+  SFX.chip();
+  refreshBetUI();
+}
+
+function breakdownAmount(total) {
+  const bd = {5:0, 25:0, 100:0, 500:0};
+  const denoms = [500, 100, 25, 5];
+  let rem = total;
+  for (const d of denoms) {
+    bd[d] = Math.floor(rem / d);
+    rem %= d;
+  }
+  return bd;
+}
+
+function renderTableChips() {
+  const zone = document.getElementById('tableBetChips');
+  if (!zone) return;
+  zone.innerHTML = '';
+  if (currentBet === 0) return;
+
+  const denoms = [500, 100, 25, 5];
+  denoms.forEach(denom => {
+    const count = betBreakdown[denom] || 0;
+    if (count === 0) return;
+
+    const visCount = Math.min(count, 8);
+
+    const stack = document.createElement('div');
+    stack.className = 'tbl-stack';
+
+    for (let i = 0; i < visCount; i++) {
+      const chip = document.createElement('div');
+      chip.className = `tbl-chip tbl-chip-${denom}`;
+      chip.style.bottom = (i * 8) + 'px';
+      chip.style.zIndex = i + 1;
+      chip.style.animationDelay = (i * 0.035) + 's';
+      chip.textContent = denom >= 1000 ? '$' + (denom/1000) + 'K' : '$' + denom;
+      stack.appendChild(chip);
+    }
+
+    const label = document.createElement('div');
+    label.className = 'tbl-stack-label';
+    label.textContent = count > 1 ? 'x' + count : '';
+    stack.appendChild(label);
+
+    zone.appendChild(stack);
+  });
+}
+
+function refreshBetUI() {
+  const bd = document.getElementById('betDisplay');
+  bd.textContent = '$' + currentBet.toLocaleString();
+  bd.className = 'hud-cell-value' + (currentBet > 0 ? ' bet-active' : '');
+  document.getElementById('dealBtn').disabled  = currentBet <= 0;
+  document.getElementById('clearBtn').disabled = currentBet <= 0;
+  document.getElementById('lastBtn').disabled  = !lastBetAmount || lastBetAmount > bank;
+  renderTableChips();
+}
+
+function shakeBet() {
+  const el = document.getElementById('betDisplay');
+  el.style.animation = 'none';
+  void el.offsetHeight;
+  el.style.animation = 'shake 0.45s ease';
+  setTimeout(() => el.style.animation='', 500);
+}
+
+// ════════════════════════════════════════════════════════
+//  DEAL
+// ════════════════════════════════════════════════════════
+async function startDeal() {
+  if (currentBet <= 0 || gamePhase !== 'betting') return;
+
+  // Deduct bet
+  bank -= currentBet;
+  lastBetAmount = currentBet;
+  handBets = [currentBet];
+  insuranceBet = 0;
+  updateBankDisplay();
+
+  // Reset hands
+  playerHands = [[]];
+  dealerHand  = [];
+  currentHandIdx = 0;
+  stats.rounds++;
+
+  clearAllCards();
+  gamePhase = 'dealing';
+  hidePanels('all');
+  setMsg('Dealing...');
+
+  // Deal: P D P D(hidden)
+  await addCard('player', 0, false);  await sleep(160);
+  await addCard('dealer', 0, false);  await sleep(160);
+  await addCard('player', 0, false);  await sleep(160);
+  await addCard('dealer', 0, true);
+
+  renderAll();
+  setMsg('');
+
+  // Insurance check
+  if (dealerHand[0].rank === 'A') {
+    const cost = Math.floor(handBets[0] / 2);
+    if (bank >= cost) {
+      document.getElementById('insuranceCost').textContent = cost;
+      document.getElementById('insurancePrompt').classList.add('visible');
+      gamePhase = 'insurance';
+      return;
+    }
+  }
+
+  afterInsurance();
+}
+
+// ════════════════════════════════════════════════════════
+//  INSURANCE
+// ════════════════════════════════════════════════════════
+function resolveInsurance(yes) {
+  document.getElementById('insurancePrompt').classList.remove('visible');
+  if (yes) {
+    const cost = Math.floor(handBets[0] / 2);
+    if (bank >= cost) { bank -= cost; insuranceBet = cost; updateBankDisplay(); }
+  }
+  afterInsurance();
+}
+
+async function afterInsurance() {
+  gamePhase = 'player';
+
+  // Check both for blackjack
+  const pBJ = isBlackjack(playerHands[0]);
+  const dBJPeek = dealerHand[0].rank === 'A' || cardNum(dealerHand[0]) === 10;
+
+  if (pBJ) {
+    // Reveal hole card
+    await sleep(300);
+    revealHole();
+    await sleep(400);
+    const dBJ = isBlackjack(dealerHand);
+
+    // Resolve insurance
+    if (insuranceBet > 0) {
+      if (dBJ) { bank += insuranceBet * 3; updateBankDisplay(); } // 2:1 payout + return
+    }
+
+    if (dBJ) {
+      settleRound([{result:'push', idx:0}]);
+      endRound('push');
+    } else {
+      settleRound([{result:'blackjack', idx:0}]);
+      endRound('blackjack');
+    }
+    return;
+  }
+
+  // No player BJ — start player turn
+  beginPlayerTurn();
+}
+
+function cardNum(c) {
+  if (c.rank==='A') return 11;
+  if ('JQK'.includes(c.rank)) return 10;
+  return parseInt(c.rank);
+}
+
+// ════════════════════════════════════════════════════════
+//  PLAYER TURN
+// ════════════════════════════════════════════════════════
+function beginPlayerTurn() {
+  gamePhase = 'player';
+  setMsg('Your turn — Hit, Stand, or Double');
+  document.getElementById('actionPanel').style.display = '';
+  document.querySelector('.table-felt').classList.add('game-in-play');
+  // BUG FIX: always fully re-enable all action buttons at start of turn
+  ['hitBtn','standBtn','doubleBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = false;
+  });
+  highlightHand();
+  refreshActionButtons();
+}
+
+function refreshActionButtons() {
+  const hand = playerHands[currentHandIdx];
+  const bet  = handBets[currentHandIdx];
+
+  // Double: only on first two cards and if can afford
+  document.getElementById('doubleBtn').disabled = hand.length !== 2 || bank < bet;
+
+  // Split: same rank, first two cards, up to 4 hands, can afford
+  const canSplit = hand.length === 2 &&
+    hand[0].rank === hand[1].rank &&
+    playerHands.length < 4 &&
+    bank >= bet;
+  const splitBtn = document.getElementById('splitBtn');
+  splitBtn.style.display = canSplit ? '' : 'none';
+  splitBtn.disabled = !canSplit;
+}
+
+async function playerHit() {
+  if (gamePhase !== 'player') return;
+  lockActions();
+  await addCard('player', currentHandIdx, false);
+  renderAll();
+  const v = handVal(playerHands[currentHandIdx]);
+  if (v > 21) {
+    SFX.bust();
+    markScore(currentHandIdx, 'bust');
+    await sleep(450);
+    nextHand();
+  } else if (v === 21) {
+    await sleep(300);
+    nextHand();
+  } else {
+    unlockActions();
+    refreshActionButtons();
+  }
+}
+
+async function playerStand() {
+  if (gamePhase !== 'player') return;
+  lockActions();
+  await sleep(150);
+  nextHand();
+}
+
+async function playerDouble() {
+  if (gamePhase !== 'player') return;
+  const bet = handBets[currentHandIdx];
+  if (bank < bet) return;
+  bank -= bet;
+  handBets[currentHandIdx] *= 2;
+  updateBankDisplay();
+  // Update bet display
+  document.getElementById('betDisplay').textContent = '$' + handBets.reduce((a,b)=>a+b,0).toLocaleString();
+  lockActions();
+  await addCard('player', currentHandIdx, false);
+  renderAll();
+  const v = handVal(playerHands[currentHandIdx]);
+  if (v > 21) { SFX.bust(); markScore(currentHandIdx, 'bust'); }
+  await sleep(350);
+  nextHand();
+}
+
+async function playerSplit() {
+  if (gamePhase !== 'player') return;
+  const bet = handBets[currentHandIdx];
+  if (bank < bet || playerHands.length >= 4) return;
+  bank -= bet;
+  updateBankDisplay();
+  lockActions();
+
+  // Split the hand
+  const splitted = playerHands[currentHandIdx].splice(1, 1)[0];
+  playerHands.splice(currentHandIdx+1, 0, [splitted]);
+  handBets.splice(currentHandIdx+1, 0, bet);
+
+  rebuildHandDivs();
+
+  await addCard('player', currentHandIdx, false);   await sleep(180);
+  await addCard('player', currentHandIdx+1, false);
+  renderAll();
+
+  // Aces get one card each then auto-stand
+  if (playerHands[currentHandIdx][0].rank === 'A') {
+    await sleep(500);
+    // Jump straight to dealer
+    currentHandIdx = playerHands.length;
+    startDealerTurn();
+    return;
+  }
+
+  unlockActions();
+  refreshActionButtons();
+  highlightHand();
+  setMsg('Hand ' + (currentHandIdx+1) + ' of ' + playerHands.length);
+}
+
+function nextHand() {
+  currentHandIdx++;
+  if (currentHandIdx >= playerHands.length) {
+    startDealerTurn();
+  } else {
+    unlockActions();
+    refreshActionButtons();
+    highlightHand();
+    setMsg('Hand ' + (currentHandIdx+1) + ' of ' + playerHands.length);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  DEALER TURN
+// ════════════════════════════════════════════════════════
+async function startDealerTurn() {
+  gamePhase = 'dealer';
+  document.getElementById('actionPanel').style.display = 'none';
+
+  revealHole();
+  SFX.flip();
+  await sleep(500);
+
+  // Resolve insurance if dealer BJ
+  if (insuranceBet > 0 && isBlackjack(dealerHand)) {
+    bank += insuranceBet * 3;
+    updateBankDisplay();
+  }
+
+  // All hands bust? Skip dealer draw
+  const allBust = playerHands.every(h => isBust(h));
+  if (!allBust) {
+    // Dealer draws until hard 17+ (hits on soft 17)
+    while (handVal(dealerHand) < 17 || (isSoft(dealerHand) && handVal(dealerHand) === 17)) {
+      await sleep(520);
+      dealerHand.push(drawCard(false));
+      renderDealerCards();
+      SFX.card();
+      updateScoreDisplay();
+    }
+  }
+
+  await sleep(420);
+  resolveAllHands();
+}
+
+function revealHole() {
+  if (dealerHand.length > 1) dealerHand[1].hidden = false;
+  renderDealerCards();
+  updateScoreDisplay();
+}
+
+// ════════════════════════════════════════════════════════
+//  SETTLEMENT  ← single place where bank changes on payout
+// ════════════════════════════════════════════════════════
+function settleRound(results) {
+  // results: [{result:'win'|'blackjack'|'lose'|'push', idx:number}]
+  let totalReturn = 0;
+  let totalWagered = 0;
+  for (const r of results) {
+    const bet = handBets[r.idx];
+    totalWagered += bet;
+    switch (r.result) {
+      case 'blackjack': totalReturn += Math.floor(bet * 2.5); stats.wins++; break;
+      case 'win':       totalReturn += bet * 2;               stats.wins++; break;
+      case 'push':      totalReturn += bet;                   stats.pushes++; break;
+      case 'lose':      stats.losses++; break;
+    }
+  }
+  bank += totalReturn;
+  const net = totalReturn - totalWagered;
+  netPL += net;
+  showLastResult(net);
+  updateBankDisplay();
+  updateStatsDisplay();
+}
+
+function resolveAllHands() {
+  const dVal = handVal(dealerHand);
+  const dBust = dVal > 21;
+  const dBJ   = isBlackjack(dealerHand) && dealerHand.length === 2;
+
+  const results = [];
+  for (let i=0; i<playerHands.length; i++) {
+    const hand = playerHands[i];
+    const pVal  = handVal(hand);
+    const pBust  = isBust(hand);
+    const pBJ    = isBlackjack(hand) && playerHands.length === 1;
+
+    let result;
+    if (pBust) {
+      result = 'lose';
+    } else if (pBJ && !dBJ) {
+      result = 'blackjack';
+    } else if (dBJ && !pBJ) {
+      result = 'lose';
+    } else if (pVal === dVal) {
+      result = 'push';
+    } else if (dBust || pVal > dVal) {
+      result = 'win';
+    } else {
+      result = 'lose';
+    }
+    results.push({ result, idx:i });
+  }
+
+  settleRound(results);
+
+  // Pick dominant outcome for visual effect
+  const hasBJ   = results.some(r=>r.result==='blackjack');
+  const hasWin  = results.some(r=>r.result==='win');
+  const allLose = results.every(r=>r.result==='lose');
+  const allPush = results.every(r=>r.result==='push');
+
+  if (hasBJ)       endRound('blackjack');
+  else if (hasWin) endRound('win');
+  else if (allPush) endRound('push');
+  else              endRound('lose');
+}
+
+function endRound(outcome) {
+  gamePhase = 'over';
+  document.querySelector('.table-felt').classList.remove('game-in-play');
+  document.querySelectorAll('.hand-wrap').forEach(el => el.classList.remove('active-hand'));
+  const dealerName = (DEALERS.find(d => d.id === activeDealerId) || DEALERS[0]).name;
+  const msgs = {
+    blackjack: '★ BLACKJACK! ★',
+    win:   'You Win!',
+    lose:  dealerName + ' Wins',
+    push:  'Push — Bet Returned',
+  };
+  const msgEl = document.getElementById('gameMessage');
+  msgEl.textContent = msgs[outcome];
+  msgEl.className   = 'game-message ' + (outcome==='push' ? 'push' : outcome==='lose' ? 'lose' : 'win');
+
+  if (outcome==='blackjack') { SFX.bj();   confetti(70); flashScreen('win'); }
+  else if (outcome==='win')  { SFX.win();  confetti(35); flashScreen('win'); }
+  else if (outcome==='push') { SFX.push(); }
+  else                        { SFX.lose(); flashScreen('lose'); }
+
+  document.getElementById('newRoundPanel').style.display = '';
+  setTimeout(() => showDealerPhrase(outcome), 700);
+
+  if (bank <= 0 && currentBet === 0) {
+    setTimeout(() => {
+      document.getElementById('gameMessage').textContent = 'No chips remaining';
+      document.getElementById('newRoundPanel').innerHTML =
+        '<button class="btn-new-round" onclick="resetGame()">Play Again ($1,000)</button>';
+    }, 1600);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  NEW ROUND / RESET
+// ════════════════════════════════════════════════════════
+function newRound() {
+  gamePhase = 'betting';
+  currentBet = 0;
+  betBreakdown = {5:0, 25:0, 100:0, 500:0};
+  currentHandIdx = 0;
+  insuranceBet = 0;
+
+  clearAllCards();
+  setMsg('Place your bet to begin');
+  document.getElementById('gameMessage').className = 'game-message';
+  document.getElementById('insurancePrompt').classList.remove('visible');
+  document.getElementById('actionPanel').style.display = 'none';
+  document.getElementById('newRoundPanel').style.display = 'none';
+
+  rebuildHandDivs(true);
+  refreshBetUI();
+  document.getElementById('bettingPanel').style.display = '';
+  updateBankDisplay();
+}
+
+function resetGame() {
+  bank = 1000; netPL = 0;
+  stats = { wins:0, losses:0, pushes:0, rounds:0 };
+  lastBetAmount = 0;
+  document.getElementById('newRoundPanel').innerHTML =
+    '<button class="btn-new-round" onclick="newRound()">New Round</button>';
+  updateStatsDisplay();
+  showLastResult(0);
+  newRound();
+}
+
+// ════════════════════════════════════════════════════════
+//  CARD RENDERING
+// ════════════════════════════════════════════════════════
+async function addCard(target, idx, hidden) {
+  const c = drawCard(hidden);
+  if (target === 'dealer') {
+    dealerHand.push(c);
+    renderDealerCards();
+  } else {
+    playerHands[idx].push(c);
+    renderPlayerCards(idx);
+  }
+  SFX.card();
+  updateScoreDisplay();
+}
+
+function makeCardEl(card) {
+  const div = document.createElement('div');
+  const isRed = card.suit==='♥' || card.suit==='♦';
+  div.className = 'card' + (isRed ? ' red' : '');
+
+  if (card.hidden) {
+    div.innerHTML = `<div class="card-back"><div class="card-back-inner"><div class="card-back-center">◆</div></div></div>`;
+  } else {
+    div.innerHTML = `
+      <div class="card-face">
+        <div class="card-rank-top">${card.rank}</div>
+        <div class="card-suit-top">${card.suit}</div>
+        <div class="card-center">${card.suit}</div>
+        <div class="card-suit-bot">${card.suit}</div>
+        <div class="card-rank-bot">${card.rank}</div>
+      </div>`;
+  }
+  return div;
+}
+
+function renderDealerCards() {
+  const c = document.getElementById('dealerCards');
+  c.innerHTML = '';
+  dealerHand.forEach((card, i) => {
+    const el = makeCardEl(card);
+    el.style.animationDelay = (i * 70) + 'ms';
+    c.appendChild(el);
+  });
+}
+
+function renderPlayerCards(idx) {
+  const c = document.getElementById('playerCards'+idx);
+  if (!c) return;
+  c.innerHTML = '';
+  playerHands[idx].forEach((card, i) => {
+    const el = makeCardEl(card);
+    el.style.animationDelay = (i * 70) + 'ms';
+    c.appendChild(el);
+  });
+}
+
+function renderAll() {
+  renderDealerCards();
+  playerHands.forEach((_, i) => renderPlayerCards(i));
+  updateScoreDisplay();
+}
+
+function updateScoreDisplay() {
+  // Dealer
+  const dEl = document.getElementById('dealerScore');
+  const vis = dealerHand.filter(c=>!c.hidden);
+  if (vis.length === 0) { dEl.textContent=''; dEl.className='hand-score'; }
+  else {
+    const v = handVal(vis);
+    dEl.textContent = v;
+    dEl.className = 'hand-score' + (v>21 ? ' bust' : (vis.length===dealerHand.length && isBlackjack(dealerHand) ? ' bj' : ''));
+  }
+
+  // Player hands
+  playerHands.forEach((hand, i) => {
+    const el = document.getElementById('playerScore'+i);
+    if (!el || hand.length===0) return;
+    const v = handVal(hand);
+    const bj = isBlackjack(hand) && playerHands.length===1;
+    el.textContent = v>21 ? v+' BUST' : (bj ? '21 ★' : v);
+    el.className = 'hand-score' + (v>21 ? ' bust' : (bj ? ' bj' : ''));
+  });
+}
+
+function markScore(idx, type) {
+  const el = document.getElementById('playerScore'+idx);
+  if (!el) return;
+  const v = handVal(playerHands[idx]);
+  el.textContent = v + (type==='bust' ? ' BUST' : '');
+  el.className = 'hand-score ' + type;
+}
+
+function clearAllCards() {
+  document.getElementById('dealerCards').innerHTML = '';
+  document.getElementById('dealerScore').textContent = '';
+  document.getElementById('dealerScore').className = 'hand-score';
+  document.querySelectorAll('.cards-row[id^="playerCards"]').forEach(r=>r.innerHTML='');
+  document.querySelectorAll('.hand-score[id^="playerScore"]').forEach(s=>{ s.textContent=''; s.className='hand-score'; });
+}
+
+function rebuildHandDivs(single=false) {
+  const row = document.getElementById('playerHandsRow');
+  if (single) {
+    row.innerHTML = `<div class="hand-wrap" id="handWrap0"><div class="cards-row" id="playerCards0"></div><div class="hand-score" id="playerScore0"></div></div>`;
+    if (!single) return;
+    playerHands = [[]];
+    handBets    = [currentBet];
+    return;
+  }
+  row.innerHTML = '';
+  playerHands.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'hand-wrap' + (i===currentHandIdx ? ' active-hand' : '');
+    d.id = 'handWrap'+i;
+    d.innerHTML = `<div class="cards-row" id="playerCards${i}"></div><div class="hand-score" id="playerScore${i}"></div>`;
+    row.appendChild(d);
+  });
+}
+
+function highlightHand() {
+  document.querySelectorAll('.hand-wrap').forEach((el, i) => {
+    el.classList.toggle('active-hand', i===currentHandIdx);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════════════════
+function setMsg(txt) {
+  const el = document.getElementById('gameMessage');
+  el.textContent = txt;
+  el.className = 'game-message';
+}
+
+function hidePanels(which) {
+  if (which==='all') {
+    document.getElementById('bettingPanel').style.display  = 'none';
+    document.getElementById('actionPanel').style.display   = 'none';
+    document.getElementById('newRoundPanel').style.display = 'none';
+  }
+}
+
+function lockActions() {
+  ['hitBtn','standBtn','doubleBtn','splitBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = true;
+  });
+}
+
+function unlockActions() {
+  ['hitBtn','standBtn','doubleBtn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = false;
+  });
+}
+
+function updateBankDisplay() {
+  document.getElementById('bankDisplay').textContent = '$' + bank.toLocaleString();
+}
+
+function updateStatsDisplay() {
+  document.getElementById('roundsDisplay').textContent  = stats.rounds;
+  document.getElementById('winsDisplay').textContent    = stats.wins;
+  document.getElementById('lossesDisplay').textContent  = stats.losses;
+  document.getElementById('pushesDisplay').textContent  = stats.pushes;
+  document.getElementById('wlpDisplay').textContent     = stats.wins+' / '+stats.losses+' / '+stats.pushes;
+  const netEl = document.getElementById('netDisplay');
+  netEl.textContent = (netPL>=0?'+':'') + '$' + netPL.toLocaleString();
+  netEl.style.color = netPL>0 ? '#55ff88' : netPL<0 ? '#ff6666' : 'var(--gold-light)';
+}
+
+function showLastResult(net) {
+  const el = document.getElementById('lastResultDisplay');
+  if (net > 0)      { el.textContent='+$'+net.toLocaleString(); el.className='hud-cell-value net-pos'; }
+  else if (net < 0) { el.textContent='-$'+Math.abs(net).toLocaleString(); el.className='hud-cell-value net-neg'; }
+  else              { el.textContent='Push'; el.className='hud-cell-value net-zero'; }
+}
+
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+// ════════════════════════════════════════════════════════
+//  VFX
+// ════════════════════════════════════════════════════════
+function flashScreen(type) {
+  const d = document.createElement('div');
+  d.className = 'result-flash ' + type;
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(), 1100);
+}
+
+function confetti(n) {
+  const cols=['#d4af37','#f0d878','#ffffff','#c0392b','#27ae60','#2980b9','#8e44ad','#e74c3c','#f39c12'];
+  for (let i=0;i<n;i++) {
+    setTimeout(()=>{
+      const p=document.createElement('div');
+      p.className='confetti-piece';
+      p.style.left=(Math.random()*100)+'vw';
+      p.style.background=cols[Math.floor(Math.random()*cols.length)];
+      const sz=5+Math.random()*9;
+      p.style.width=sz+'px'; p.style.height=sz+'px';
+      p.style.borderRadius=Math.random()>0.5?'50%':'2px';
+      const dur=1.6+Math.random()*2.2;
+      p.style.animationDuration=dur+'s';
+      document.body.appendChild(p);
+      setTimeout(()=>p.remove(), dur*1000+100);
+    }, i*35);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  STARFIELD
+// ════════════════════════════════════════════════════════
+function buildStarfield() {
+  const sf = document.getElementById('starfield');
+  for (let i=0;i<90;i++) {
+    const s=document.createElement('div');
+    s.className='star';
+    const sz=0.7+Math.random()*2.2;
+    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${2+Math.random()*5}s;--del:${Math.random()*5}s;`;
+    sf.appendChild(s);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName==='BUTTON') return;
+  const k = e.key.toLowerCase();
+  if (gamePhase==='player') {
+    if (k==='h') playerHit();
+    if (k==='s') playerStand();
+    if (k==='d') playerDouble();
+  }
+  if (gamePhase==='betting') {
+    if (k==='enter') startDeal();
+    if (k==='1') addBet(5);
+    if (k==='2') addBet(25);
+    if (k==='3') addBet(100);
+    if (k==='4') addBet(500);
+    if (k==='c') clearBet();
+    if (k==='r') reBet();
+  }
+  if (gamePhase==='over' && k==='enter') newRound();
+});
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+buildStarfield();
+buildShoe();
+updateBankDisplay();
+updateStatsDisplay();
+refreshBetUI();
+
+// ════════════════════════════════════════════════════════
+//  DEALER ROSTER
+// ════════════════════════════════════════════════════════
+let activeDealerId = 'viktor';
+let viktorSvgCache = '';
+
+// Thumbnail SVGs — solid fills, no gradient IDs (shown simultaneously)
+function thumbSvg(opts) {
+  // opts: { skin, hair, hairStyle, eyeColor, extra }
+  const { skin, hair, detail } = opts;
+  return detail; // each dealer provides their own compact thumb SVG string
+}
+
+const DEALERS = [
+  {
+    id: 'viktor',
+    name: 'Viktor',
+    titleTag: 'The Scar',
+    desc: 'Cold. Precise. Unreadable.',
+    thumb: `<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 260 L30 195 Q50 180 70 185 L80 210 L100 200 L120 210 L130 185 Q150 180 170 195 L190 260 Z" fill="#111118"/>
+      <path d="M80 210 L100 200 L120 210 L115 230 L100 225 L85 230 Z" fill="#f0f0f0"/>
+      <polygon points="85,208 100,202 115,208 100,215" fill="#8b0000"/>
+      <rect x="84" y="182" width="32" height="30" rx="8" fill="#b87d52"/>
+      <ellipse cx="100" cy="120" rx="60" ry="72" fill="#b87d52"/>
+      <ellipse cx="100" cy="58" rx="60" ry="38" fill="#1c1c1c"/>
+      <ellipse cx="46" cy="85" rx="12" ry="20" fill="#444"/>
+      <ellipse cx="154" cy="85" rx="12" ry="20" fill="#444"/>
+      <ellipse cx="42" cy="125" rx="11" ry="15" fill="#a87050"/>
+      <ellipse cx="158" cy="125" rx="11" ry="15" fill="#a87050"/>
+      <path d="M62 100 Q78 93 94 97" stroke="#1c1c1c" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M106 97 Q122 93 138 100" stroke="#1c1c1c" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="78" cy="116" rx="16" ry="11" fill="white"/>
+      <ellipse cx="78" cy="117" rx="6" ry="6" fill="#1a0f0a"/>
+      <ellipse cx="122" cy="116" rx="16" ry="11" fill="white"/>
+      <ellipse cx="122" cy="117" rx="6" ry="6" fill="#1a0f0a"/>
+      <path d="M82 168 Q100 164 118 168" stroke="#7a4020" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M75 130 L58 168" stroke="#d4a882" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M67 149 L64 153 L60 155" stroke="#d4a882" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>`,
+    mainSvg: null // loaded from DOM on init
+  },
+  {
+    id: 'isabella',
+    name: 'Isabella',
+    titleTag: 'La Principessa',
+    desc: 'Elegance with a razor edge.',
+    thumb: `<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 260 L35 200 Q55 185 75 188 L90 215 L100 205 L110 215 L125 188 Q145 185 165 200 L190 260 Z" fill="#111118"/>
+      <path d="M90 215 L100 205 L110 215 L107 225 L100 222 L93 225 Z" fill="#f0f0f0"/>
+      <rect x="86" y="180" width="28" height="32" rx="9" fill="#d4916c"/>
+      <ellipse cx="100" cy="116" rx="56" ry="70" fill="#d4916c"/>
+      <!-- Hair - dark updo -->
+      <ellipse cx="100" cy="52" rx="58" ry="34" fill="#180e0e"/>
+      <ellipse cx="100" cy="40" rx="22" ry="16" fill="#180e0e"/>
+      <ellipse cx="118" cy="44" rx="13" ry="10" fill="#180e0e"/>
+      <ellipse cx="48" cy="82" rx="10" ry="22" fill="#180e0e"/>
+      <ellipse cx="152" cy="82" rx="10" ry="22" fill="#180e0e"/>
+      <!-- Pearl earring -->
+      <ellipse cx="152" cy="130" rx="10" ry="13" fill="#c8845a"/>
+      <circle cx="157" cy="138" r="4.5" fill="#f5f0e8"/>
+      <ellipse cx="48" cy="126" rx="10" ry="13" fill="#c8845a"/>
+      <!-- High cheekbones blush -->
+      <ellipse cx="70" cy="138" rx="16" ry="9" fill="rgba(200,80,60,0.12)"/>
+      <ellipse cx="130" cy="138" rx="16" ry="9" fill="rgba(200,80,60,0.12)"/>
+      <!-- Eyebrows -->
+      <path d="M64 104 Q78 97 92 102" stroke="#2a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M108 102 Q122 97 136 104" stroke="#2a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <!-- Eyes with lashes -->
+      <ellipse cx="78" cy="118" rx="15" ry="10" fill="white"/>
+      <ellipse cx="78" cy="119" rx="5.5" ry="5.5" fill="#0d0510"/>
+      <path d="M63 114 Q78 108 93 114" stroke="#2a1a1a" stroke-width="1.8" fill="none"/>
+      <line x1="66" y1="113" x2="64" y2="110" stroke="#1a1010" stroke-width="1" stroke-linecap="round"/>
+      <line x1="72" y1="111" x2="71" y2="108" stroke="#1a1010" stroke-width="1" stroke-linecap="round"/>
+      <line x1="78" y1="110" x2="78" y2="107" stroke="#1a1010" stroke-width="1" stroke-linecap="round"/>
+      <line x1="84" y1="111" x2="85" y2="108" stroke="#1a1010" stroke-width="1" stroke-linecap="round"/>
+      <line x1="90" y1="113" x2="92" y2="110" stroke="#1a1010" stroke-width="1" stroke-linecap="round"/>
+      <ellipse cx="122" cy="118" rx="15" ry="10" fill="white"/>
+      <ellipse cx="122" cy="119" rx="5.5" ry="5.5" fill="#0d0510"/>
+      <path d="M107 114 Q122 108 137 114" stroke="#2a1a1a" stroke-width="1.8" fill="none"/>
+      <line x1="110" y1="113" x2="108" y2="110" stroke="#1a1010" stroke-width="1" stroke-linecap="round"/>
+      <line x1="116" y1="111" x2="115" y2="108" stroke="#1a1010" stroke-width="1" stroke-linecap="round"/>
+      <line x1="122" y1="110" x2="122" y2="107" stroke="#1a1010" stroke-width="1" stroke-linecap="round"/>
+      <line x1="128" y1="111" x2="129" y2="108" stroke="#1a1010" stroke-width="1" stroke-linecap="round"/>
+      <line x1="134" y1="113" x2="136" y2="110" stroke="#1a1010" stroke-width="1" stroke-linecap="round"/>
+      <!-- Nose -->
+      <path d="M100 130 L95 150 Q100 155 105 150 Z" fill="rgba(140,70,40,0.35)"/>
+      <!-- Red lips -->
+      <path d="M84 165 Q92 158 100 160 Q108 158 116 165 Q108 174 100 172 Q92 174 84 165 Z" fill="#8b1a30"/>
+      <path d="M84 165 Q92 162 100 163 Q108 162 116 165" stroke="#6b0820" stroke-width="0.8" fill="none"/>
+    </svg>`,
+    mainSvg: `
+      <defs>
+        <radialGradient id="isg" cx="50%" cy="40%" r="55%">
+          <stop offset="0%" stop-color="#e8b090"/><stop offset="60%" stop-color="#d4916c"/><stop offset="100%" stop-color="#b87050"/>
+        </radialGradient>
+        <radialGradient id="ieg" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#3d2035"/><stop offset="100%" stop-color="#1a080f"/>
+        </radialGradient>
+      </defs>
+      <path d="M10 260 L35 200 Q55 185 75 188 L90 215 L100 205 L110 215 L125 188 Q145 185 165 200 L190 260 Z" fill="#111118"/>
+      <path d="M90 215 L100 205 L110 215 L107 226 L100 222 L93 226 Z" fill="#f5f5f5"/>
+      <polygon points="86,212 100,206 114,212 100,218" fill="#8b0000"/>
+      <ellipse cx="100" cy="212" rx="4" ry="3" fill="#a00000"/>
+      <path d="M90 215 L68 198 L78 186 L93 202 Z" fill="#1a1a28"/>
+      <path d="M110 215 L132 198 L122 186 L107 202 Z" fill="#1a1a28"/>
+      <rect x="86" y="180" width="28" height="32" rx="9" fill="url(#isg)"/>
+      <ellipse cx="100" cy="116" rx="56" ry="70" fill="url(#isg)"/>
+      <!-- Dark updo hair -->
+      <ellipse cx="100" cy="52" rx="58" ry="34" fill="#180e0e"/>
+      <ellipse cx="100" cy="40" rx="22" ry="16" fill="#180e0e"/>
+      <ellipse cx="118" cy="44" rx="13" ry="10" fill="#180e0e"/>
+      <ellipse cx="48" cy="82" rx="10" ry="22" fill="#180e0e"/>
+      <ellipse cx="152" cy="82" rx="10" ry="22" fill="#180e0e"/>
+      <path d="M80 38 Q100 32 120 38 Q115 46 100 44 Q85 46 80 38Z" fill="rgba(255,255,255,0.06)"/>
+      <!-- Face tendrils -->
+      <path d="M48 88 Q44 100 46 116" stroke="#180e0e" stroke-width="4" fill="none"/>
+      <path d="M152 88 Q156 100 154 116" stroke="#180e0e" stroke-width="4" fill="none"/>
+      <!-- Pearl earring -->
+      <ellipse cx="152" cy="130" rx="10" ry="13" fill="url(#isg)"/>
+      <circle cx="157" cy="138" r="5" fill="#f0ece0" opacity="0.95"/>
+      <circle cx="155.5" cy="136.5" r="1.8" fill="rgba(255,255,255,0.7)"/>
+      <ellipse cx="48" cy="126" rx="10" ry="13" fill="#c8805a"/>
+      <!-- Face shading -->
+      <ellipse cx="72" cy="135" rx="16" ry="24" fill="rgba(0,0,0,0.07)"/>
+      <ellipse cx="128" cy="135" rx="16" ry="24" fill="rgba(0,0,0,0.07)"/>
+      <!-- Cheekbone blush -->
+      <ellipse cx="70" cy="138" rx="18" ry="10" fill="rgba(200,80,60,0.1)"/>
+      <ellipse cx="130" cy="138" rx="18" ry="10" fill="rgba(200,80,60,0.1)"/>
+      <!-- Eyebrows — elegant arched -->
+      <path d="M64 104 Q78 97 92 102" stroke="#2a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M108 102 Q122 97 136 104" stroke="#2a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <!-- Left eye with lashes -->
+      <ellipse cx="78" cy="118" rx="15" ry="10" fill="white"/>
+      <ellipse cx="78" cy="119" rx="9" ry="8" fill="url(#ieg)"/>
+      <ellipse cx="78" cy="119" rx="5.5" ry="5.5" fill="#0d0510"/>
+      <ellipse cx="75" cy="116" rx="2" ry="2" fill="rgba(255,255,255,0.7)"/>
+      <path d="M63 114 Q78 108 93 114" stroke="#2a1a1a" stroke-width="1.8" fill="none"/>
+      <line x1="66" y1="113" x2="63" y2="109" stroke="#1a1010" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="72" y1="111" x2="70" y2="107" stroke="#1a1010" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="78" y1="110" x2="77" y2="106" stroke="#1a1010" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="84" y1="111" x2="85" y2="107" stroke="#1a1010" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="90" y1="113" x2="92" y2="109" stroke="#1a1010" stroke-width="1.2" stroke-linecap="round"/>
+      <!-- Right eye with lashes -->
+      <ellipse cx="122" cy="118" rx="15" ry="10" fill="white"/>
+      <ellipse cx="122" cy="119" rx="9" ry="8" fill="url(#ieg)"/>
+      <ellipse cx="122" cy="119" rx="5.5" ry="5.5" fill="#0d0510"/>
+      <ellipse cx="119" cy="116" rx="2" ry="2" fill="rgba(255,255,255,0.7)"/>
+      <path d="M107 114 Q122 108 137 114" stroke="#2a1a1a" stroke-width="1.8" fill="none"/>
+      <line x1="110" y1="113" x2="108" y2="109" stroke="#1a1010" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="116" y1="111" x2="115" y2="107" stroke="#1a1010" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="122" y1="110" x2="121" y2="106" stroke="#1a1010" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="128" y1="111" x2="129" y2="107" stroke="#1a1010" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="134" y1="113" x2="136" y2="109" stroke="#1a1010" stroke-width="1.2" stroke-linecap="round"/>
+      <!-- Nose -->
+      <path d="M100 130 L95 150 Q100 155 105 150 Z" fill="rgba(140,70,40,0.35)"/>
+      <ellipse cx="95" cy="150" rx="5" ry="4" fill="rgba(120,60,30,0.3)"/>
+      <ellipse cx="105" cy="150" rx="5" ry="4" fill="rgba(120,60,30,0.3)"/>
+      <!-- Wine red lips -->
+      <path d="M84 165 Q92 158 100 160 Q108 158 116 165 Q108 174 100 172 Q92 174 84 165 Z" fill="#8b1a30" opacity="0.95"/>
+      <path d="M84 165 Q92 162 100 163 Q108 162 116 165" stroke="#6b0820" stroke-width="0.8" fill="none"/>
+      <ellipse cx="100" cy="169" rx="10" ry="3.5" fill="rgba(180,50,70,0.25)"/>
+    `
+  },
+  {
+    id: 'marcel',
+    name: 'Marcel',
+    titleTag: 'Le Fantôme',
+    desc: 'Thirty years at the table. Never blinked.',
+    thumb: `<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 260 L30 195 Q50 180 70 185 L80 210 L100 200 L120 210 L130 185 Q150 180 170 195 L190 260 Z" fill="#111118"/>
+      <path d="M80 210 L100 200 L120 210 L115 230 L100 225 L85 230 Z" fill="#f0f0f0"/>
+      <polygon points="85,208 100,202 115,208 100,215" fill="#1a3a6a"/>
+      <rect x="84" y="182" width="32" height="30" rx="8" fill="#c09070"/>
+      <ellipse cx="100" cy="118" rx="56" ry="72" fill="#c09070"/>
+      <!-- Silver swept-back hair -->
+      <ellipse cx="100" cy="56" rx="58" ry="36" fill="#c0bfbe"/>
+      <path d="M72 38 Q100 30 128 38 Q122 50 100 46 Q78 50 72 38Z" fill="rgba(255,255,255,0.35)"/>
+      <ellipse cx="46" cy="84" rx="13" ry="24" fill="#b0afae"/>
+      <ellipse cx="154" cy="84" rx="13" ry="24" fill="#b0afae"/>
+      <ellipse cx="46" cy="124" rx="11" ry="14" fill="#b08870"/>
+      <ellipse cx="154" cy="124" rx="11" ry="14" fill="#b08870"/>
+      <!-- Eyebrows (grey) -->
+      <path d="M62 102 Q78 96 94 100" stroke="#909090" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <path d="M106 100 Q122 96 138 102" stroke="#909090" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <!-- Eyes -->
+      <ellipse cx="78" cy="116" rx="15" ry="10" fill="white"/>
+      <ellipse cx="78" cy="117" rx="6" ry="5.5" fill="#2a3a58"/>
+      <ellipse cx="122" cy="116" rx="15" ry="10" fill="white"/>
+      <ellipse cx="122" cy="117" rx="6" ry="5.5" fill="#2a3a58"/>
+      <!-- Pencil mustache -->
+      <path d="M88 165 Q94 162 100 163 Q106 162 112 165" stroke="#909090" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <!-- Mouth -->
+      <path d="M84 172 Q100 176 116 172" stroke="#7a5040" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <!-- Nasolabial folds (age) -->
+      <path d="M82 160 Q80 166 82 172" stroke="rgba(100,70,40,0.25)" stroke-width="1.5" fill="none"/>
+      <path d="M118 160 Q120 166 118 172" stroke="rgba(100,70,40,0.25)" stroke-width="1.5" fill="none"/>
+    </svg>`,
+    mainSvg: `
+      <defs>
+        <radialGradient id="msg" cx="50%" cy="40%" r="55%">
+          <stop offset="0%" stop-color="#d4b090"/><stop offset="60%" stop-color="#c09070"/><stop offset="100%" stop-color="#a07050"/>
+        </radialGradient>
+        <radialGradient id="meg" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#405878"/><stop offset="100%" stop-color="#1a2838"/>
+        </radialGradient>
+      </defs>
+      <path d="M10 260 L30 195 Q50 180 70 185 L80 210 L100 200 L120 210 L130 185 Q150 180 170 195 L190 260 Z" fill="#111118"/>
+      <path d="M80 210 L100 200 L120 210 L115 230 L100 225 L85 230 Z" fill="#f5f5f5"/>
+      <polygon points="85,208 100,202 115,208 100,215" fill="#1a3a6a"/>
+      <ellipse cx="100" cy="208" rx="4" ry="3.5" fill="#2a4a8a"/>
+      <path d="M80 210 L60 195 L70 185 L85 200 Z" fill="#1a1a28"/>
+      <path d="M120 210 L140 195 L130 185 L115 200 Z" fill="#1a1a28"/>
+      <rect x="84" y="182" width="32" height="30" rx="8" fill="url(#msg)"/>
+      <ellipse cx="100" cy="118" rx="56" ry="72" fill="url(#msg)"/>
+      <!-- Silver swept-back hair — full volume -->
+      <ellipse cx="100" cy="56" rx="58" ry="36" fill="#c0bfbe"/>
+      <path d="M72 38 Q100 30 128 38 Q122 50 100 46 Q78 50 72 38Z" fill="rgba(255,255,255,0.35)"/>
+      <path d="M80 34 Q88 42 86 52" stroke="#e8e8e8" stroke-width="3" fill="none" opacity="0.5"/>
+      <path d="M120 34 Q112 42 114 52" stroke="#e8e8e8" stroke-width="3" fill="none" opacity="0.5"/>
+      <ellipse cx="46" cy="84" rx="13" ry="24" fill="#b0afae"/>
+      <ellipse cx="154" cy="84" rx="13" ry="24" fill="#b0afae"/>
+      <ellipse cx="46" cy="124" rx="11" ry="14" fill="#b08870"/>
+      <ellipse cx="154" cy="124" rx="11" ry="14" fill="#b08870"/>
+      <ellipse cx="46" cy="126" rx="6" ry="9" fill="#9a7060" opacity="0.5"/>
+      <!-- Face shading -->
+      <ellipse cx="72" cy="136" rx="18" ry="26" fill="rgba(0,0,0,0.08)"/>
+      <ellipse cx="128" cy="136" rx="18" ry="26" fill="rgba(0,0,0,0.08)"/>
+      <!-- Age lines — subtle -->
+      <path d="M94 108 Q96 104 100 103 Q104 104 106 108" stroke="rgba(100,70,40,0.22)" stroke-width="1" fill="none"/>
+      <path d="M63 119 Q65 116 66 119" stroke="rgba(100,70,40,0.15)" stroke-width="1" fill="none"/>
+      <path d="M134 119 Q135 116 137 119" stroke="rgba(100,70,40,0.15)" stroke-width="1" fill="none"/>
+      <!-- Grey eyebrows — distinguished -->
+      <path d="M62 102 Q78 96 94 100" stroke="#909090" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M106 100 Q122 96 138 102" stroke="#909090" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <!-- Left eye — slightly hooded -->
+      <ellipse cx="78" cy="116" rx="15" ry="10" fill="white"/>
+      <path d="M63 112 Q78 116 93 112" fill="#c09070" opacity="0.35"/>
+      <ellipse cx="78" cy="117" rx="9" ry="7.5" fill="url(#meg)"/>
+      <ellipse cx="78" cy="117" rx="5.5" ry="5.5" fill="#100d1a"/>
+      <ellipse cx="75" cy="114" rx="2" ry="2" fill="rgba(255,255,255,0.65)"/>
+      <path d="M63 112 Q78 106 93 112" stroke="#3a3030" stroke-width="1.5" fill="none"/>
+      <path d="M63 122 Q78 128 93 122" stroke="rgba(100,70,40,0.3)" stroke-width="1" fill="none"/>
+      <!-- Right eye -->
+      <ellipse cx="122" cy="116" rx="15" ry="10" fill="white"/>
+      <path d="M107 112 Q122 116 137 112" fill="#c09070" opacity="0.35"/>
+      <ellipse cx="122" cy="117" rx="9" ry="7.5" fill="url(#meg)"/>
+      <ellipse cx="122" cy="117" rx="5.5" ry="5.5" fill="#100d1a"/>
+      <ellipse cx="119" cy="114" rx="2" ry="2" fill="rgba(255,255,255,0.65)"/>
+      <path d="M107 112 Q122 106 137 112" stroke="#3a3030" stroke-width="1.5" fill="none"/>
+      <path d="M107 122 Q122 128 137 122" stroke="rgba(100,70,40,0.3)" stroke-width="1" fill="none"/>
+      <!-- Nose — prominent, distinguished -->
+      <path d="M100 130 L92 155 Q100 162 108 155 Z" fill="rgba(120,80,40,0.4)"/>
+      <ellipse cx="92" cy="155" rx="8" ry="5.5" fill="rgba(110,70,35,0.35)"/>
+      <ellipse cx="108" cy="155" rx="8" ry="5.5" fill="rgba(110,70,35,0.35)"/>
+      <!-- PENCIL MUSTACHE — thin, elegant -->
+      <path d="M88 165 Q94 162 100 163 Q106 162 112 165" stroke="#888" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <!-- Mouth -->
+      <path d="M84 172 Q100 176 116 172" stroke="#7a5040" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <!-- Nasolabial folds -->
+      <path d="M82 160 Q80 166 82 172" stroke="rgba(100,70,40,0.22)" stroke-width="1.5" fill="none"/>
+      <path d="M118 160 Q120 166 118 172" stroke="rgba(100,70,40,0.22)" stroke-width="1.5" fill="none"/>
+    `
+  },
+  {
+    id: 'kai',
+    name: 'Kai',
+    titleTag: 'The Shark',
+    desc: 'Sees everything. Says nothing.',
+    thumb: `<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 260 L30 195 Q50 180 70 185 L80 210 L100 200 L120 210 L130 185 Q150 180 170 195 L190 260 Z" fill="#111118"/>
+      <path d="M80 210 L100 200 L120 210 L115 230 L100 225 L85 230 Z" fill="#f0f0f0"/>
+      <polygon points="85,208 100,202 115,208 100,215" fill="#8b0000"/>
+      <rect x="85" y="183" width="30" height="28" rx="8" fill="#c89060"/>
+      <ellipse cx="100" cy="118" rx="56" ry="70" fill="#c89060"/>
+      <!-- Angular jaw -->
+      <path d="M55 140 Q52 170 60 188 Q80 200 100 202 Q120 200 140 188 Q148 170 145 140" fill="#c89060"/>
+      <!-- Jet black neat hair with side part -->
+      <ellipse cx="100" cy="56" rx="58" ry="36" fill="#111111"/>
+      <ellipse cx="103" cy="52" rx="46" ry="28" fill="#111111"/>
+      <path d="M45 60 Q68 50 70 62 Q65 68 50 72 Z" fill="#111111"/>
+      <path d="M155 60 Q132 50 130 62 Q135 68 150 72 Z" fill="#111111"/>
+      <!-- Part line -->
+      <line x1="70" y1="38" x2="70" y2="62" stroke="#191919" stroke-width="2"/>
+      <path d="M80 40 Q100 34 120 40 Q115 48 100 46 Q85 48 80 40Z" fill="rgba(255,255,255,0.08)"/>
+      <ellipse cx="46" cy="126" rx="10" ry="13" fill="#b88050"/>
+      <ellipse cx="154" cy="126" rx="10" ry="13" fill="#b88050"/>
+      <!-- High cheekbones -->
+      <ellipse cx="68" cy="132" rx="20" ry="14" fill="rgba(0,0,0,0.12)"/>
+      <ellipse cx="132" cy="132" rx="20" ry="14" fill="rgba(0,0,0,0.12)"/>
+      <!-- Eyebrows — straight, precise -->
+      <line x1="63" y1="101" x2="93" y2="99" stroke="#111" stroke-width="3" stroke-linecap="round"/>
+      <line x1="107" y1="99" x2="137" y2="101" stroke="#111" stroke-width="3" stroke-linecap="round"/>
+      <!-- Eyes — slightly almond -->
+      <ellipse cx="78" cy="118" rx="15" ry="9" fill="white"/>
+      <ellipse cx="78" cy="119" rx="5.5" ry="5" fill="#060304"/>
+      <path d="M63 114 Q78 108 93 114" stroke="#111" stroke-width="1.5" fill="none"/>
+      <!-- Inner corner fold hint -->
+      <path d="M63 118 Q66 116 66 118" stroke="#c89060" stroke-width="1.2" fill="none" opacity="0.6"/>
+      <ellipse cx="122" cy="118" rx="15" ry="9" fill="white"/>
+      <ellipse cx="122" cy="119" rx="5.5" ry="5" fill="#060304"/>
+      <path d="M107 114 Q122 108 137 114" stroke="#111" stroke-width="1.5" fill="none"/>
+      <path d="M137 118 Q134 116 134 118" stroke="#c89060" stroke-width="1.2" fill="none" opacity="0.6"/>
+      <!-- Nose -->
+      <path d="M100 130 L95 152 Q100 157 105 152 Z" fill="rgba(120,75,35,0.38)"/>
+      <!-- Mouth — thin, controlled -->
+      <path d="M85 168 Q100 164 115 168" stroke="#8a5535" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    </svg>`,
+    mainSvg: `
+      <defs>
+        <radialGradient id="ksg" cx="50%" cy="40%" r="55%">
+          <stop offset="0%" stop-color="#d8a878"/><stop offset="60%" stop-color="#c89060"/><stop offset="100%" stop-color="#a87040"/>
+        </radialGradient>
+        <radialGradient id="keg" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#2a2020"/><stop offset="100%" stop-color="#0d0808"/>
+        </radialGradient>
+      </defs>
+      <path d="M10 260 L30 195 Q50 180 70 185 L80 210 L100 200 L120 210 L130 185 Q150 180 170 195 L190 260 Z" fill="#111118"/>
+      <path d="M80 210 L100 200 L120 210 L115 230 L100 225 L85 230 Z" fill="#f5f5f5"/>
+      <polygon points="85,208 100,202 115,208 100,215" fill="#8b0000"/>
+      <ellipse cx="100" cy="208" rx="4" ry="3.5" fill="#a00000"/>
+      <path d="M80 210 L60 195 L70 185 L85 200 Z" fill="#1a1a28"/>
+      <path d="M120 210 L140 195 L130 185 L115 200 Z" fill="#1a1a28"/>
+      <rect x="85" y="183" width="30" height="28" rx="8" fill="url(#ksg)"/>
+      <ellipse cx="100" cy="118" rx="56" ry="70" fill="url(#ksg)"/>
+      <!-- Angular jaw -->
+      <path d="M55 140 Q52 170 60 188 Q80 200 100 202 Q120 200 140 188 Q148 170 145 140" fill="url(#ksg)"/>
+      <!-- Jet black hair — neat side part -->
+      <ellipse cx="100" cy="56" rx="58" ry="36" fill="#111111"/>
+      <ellipse cx="103" cy="52" rx="46" ry="28" fill="#111111"/>
+      <path d="M45 60 Q68 50 70 62 Q65 68 50 72 Z" fill="#111111"/>
+      <path d="M155 60 Q132 50 130 62 Q135 68 150 72 Z" fill="#111111"/>
+      <line x1="70" y1="38" x2="70" y2="62" stroke="#191919" stroke-width="2"/>
+      <path d="M80 40 Q100 34 120 40 Q115 48 100 46 Q85 48 80 40Z" fill="rgba(255,255,255,0.08)"/>
+      <ellipse cx="46" cy="126" rx="10" ry="13" fill="url(#ksg)"/>
+      <ellipse cx="154" cy="126" rx="10" ry="13" fill="url(#ksg)"/>
+      <!-- High cheekbones -->
+      <ellipse cx="68" cy="132" rx="20" ry="14" fill="rgba(0,0,0,0.12)"/>
+      <ellipse cx="132" cy="132" rx="20" ry="14" fill="rgba(0,0,0,0.12)"/>
+      <ellipse cx="100" cy="178" rx="44" ry="16" fill="rgba(0,0,0,0.1)"/>
+      <!-- Eyebrows — straight, precise -->
+      <line x1="63" y1="101" x2="93" y2="99" stroke="#111111" stroke-width="3.2" stroke-linecap="round"/>
+      <line x1="107" y1="99" x2="137" y2="101" stroke="#111111" stroke-width="3.2" stroke-linecap="round"/>
+      <!-- Left eye — almond, controlled -->
+      <ellipse cx="78" cy="118" rx="15" ry="9" fill="white"/>
+      <ellipse cx="78" cy="119" rx="9" ry="7" fill="url(#keg)"/>
+      <ellipse cx="78" cy="119" rx="5.5" ry="5" fill="#060304"/>
+      <ellipse cx="75" cy="116" rx="1.8" ry="1.8" fill="rgba(255,255,255,0.6)"/>
+      <path d="M63 114 Q78 108 93 114" stroke="#111111" stroke-width="1.5" fill="none"/>
+      <path d="M63 122 Q78 128 93 122" stroke="rgba(20,10,5,0.3)" stroke-width="0.8" fill="none"/>
+      <!-- Inner corner fold -->
+      <path d="M63 118 Q66 116 66 118" stroke="#c89060" stroke-width="1.2" fill="none" opacity="0.55"/>
+      <!-- Right eye -->
+      <ellipse cx="122" cy="118" rx="15" ry="9" fill="white"/>
+      <ellipse cx="122" cy="119" rx="9" ry="7" fill="url(#keg)"/>
+      <ellipse cx="122" cy="119" rx="5.5" ry="5" fill="#060304"/>
+      <ellipse cx="119" cy="116" rx="1.8" ry="1.8" fill="rgba(255,255,255,0.6)"/>
+      <path d="M107 114 Q122 108 137 114" stroke="#111111" stroke-width="1.5" fill="none"/>
+      <path d="M107 122 Q122 128 137 122" stroke="rgba(20,10,5,0.3)" stroke-width="0.8" fill="none"/>
+      <path d="M137 118 Q134 116 134 118" stroke="#c89060" stroke-width="1.2" fill="none" opacity="0.55"/>
+      <!-- Nose — straight, refined -->
+      <path d="M100 130 L95 152 Q100 157 105 152 Z" fill="rgba(120,75,35,0.4)"/>
+      <ellipse cx="95" cy="152" rx="6" ry="4.5" fill="rgba(110,65,30,0.3)"/>
+      <ellipse cx="105" cy="152" rx="6" ry="4.5" fill="rgba(110,65,30,0.3)"/>
+      <!-- Mouth — thin, controlled, expressionless -->
+      <path d="M85 168 Q100 164 115 168" stroke="#8a5535" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="M87 171 Q100 174 113 171" stroke="rgba(100,60,30,0.38)" stroke-width="1" fill="none" stroke-linecap="round"/>
+    `
+  },
+  {
+    id: 'rex',
+    name: 'Rex',
+    titleTag: 'The Wall',
+    desc: 'No one leaves ahead of Rex.',
+    thumb: `<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 260 L28 195 Q42 178 62 182 L78 210 L100 202 L122 210 L138 182 Q158 178 172 195 L195 260 Z" fill="#111118"/>
+      <path d="M78 210 L100 202 L122 210 L117 228 L100 222 L83 228 Z" fill="#f0f0f0"/>
+      <polygon points="84,208 100,203 116,208 100,214" fill="#8b0000"/>
+      <!-- Thick neck -->
+      <rect x="78" y="180" width="44" height="32" rx="6" fill="#7a4a28"/>
+      <!-- Large bald head -->
+      <ellipse cx="100" cy="112" rx="64" ry="74" fill="#7a4a28"/>
+      <!-- Bald shine -->
+      <ellipse cx="90" cy="68" rx="28" ry="18" fill="rgba(255,255,255,0.06)"/>
+      <!-- Ears (large) -->
+      <ellipse cx="40" cy="124" rx="14" ry="18" fill="#6a3a18"/>
+      <ellipse cx="160" cy="124" rx="14" ry="18" fill="#6a3a18"/>
+      <!-- Heavy brow ridge -->
+      <ellipse cx="100" cy="106" rx="58" ry="14" fill="rgba(0,0,0,0.2)"/>
+      <!-- Eyebrows — thick, furrowed -->
+      <path d="M58 104 Q78 95 96 101" stroke="#2a1808" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+      <path d="M104 101 Q122 95 142 104" stroke="#2a1808" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+      <path d="M96 101 Q100 98 104 101" stroke="#2a1808" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <!-- Eyes — small, deep-set -->
+      <ellipse cx="76" cy="120" rx="13" ry="9" fill="white"/>
+      <ellipse cx="76" cy="121" rx="5" ry="5" fill="#050300"/>
+      <path d="M63 116 Q76 110 89 116" stroke="#2a1808" stroke-width="2" fill="none"/>
+      <path d="M62 116 Q76 112 90 116 Q90 110 76 108 Q62 110 62 116Z" fill="rgba(0,0,0,0.2)"/>
+      <ellipse cx="124" cy="120" rx="13" ry="9" fill="white"/>
+      <ellipse cx="124" cy="121" rx="5" ry="5" fill="#050300"/>
+      <path d="M111 116 Q124 110 137 116" stroke="#2a1808" stroke-width="2" fill="none"/>
+      <path d="M110 116 Q124 112 138 116 Q138 110 124 108 Q110 110 110 116Z" fill="rgba(0,0,0,0.2)"/>
+      <!-- Broad nose -->
+      <path d="M100 134 L90 158 Q100 166 110 158 Z" fill="rgba(60,30,10,0.45)"/>
+      <ellipse cx="90" cy="158" rx="10" ry="7" fill="rgba(55,28,8,0.4)"/>
+      <ellipse cx="110" cy="158" rx="10" ry="7" fill="rgba(55,28,8,0.4)"/>
+      <!-- Mouth / sneer -->
+      <path d="M80 170 Q100 167 120 170" stroke="#5a3010" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M80 170 Q78 167 80 165" stroke="#5a3010" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- Gold tooth -->
+      <path d="M94 172 Q100 176 106 172" fill="rgba(0,0,0,0.5)"/>
+      <rect x="97" y="172" width="6" height="4" rx="1" fill="#d4af37" opacity="0.9"/>
+      <!-- Stubble -->
+      <g fill="rgba(20,10,5,0.35)">
+        <circle cx="84" cy="163" r="1.5"/><circle cx="90" cy="166" r="1.3"/><circle cx="96" cy="168" r="1.5"/>
+        <circle cx="104" cy="168" r="1.3"/><circle cx="110" cy="166" r="1.5"/><circle cx="116" cy="163" r="1.5"/>
+      </g>
+    </svg>`,
+    mainSvg: `
+      <defs>
+        <radialGradient id="rsg" cx="50%" cy="40%" r="55%">
+          <stop offset="0%" stop-color="#9a6240"/><stop offset="60%" stop-color="#7a4a28"/><stop offset="100%" stop-color="#5a3015"/>
+        </radialGradient>
+        <radialGradient id="reg" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#3a2510"/><stop offset="100%" stop-color="#150c05"/>
+        </radialGradient>
+      </defs>
+      <path d="M5 260 L28 195 Q42 178 62 182 L78 210 L100 202 L122 210 L138 182 Q158 178 172 195 L195 260 Z" fill="#111118"/>
+      <path d="M78 210 L100 202 L122 210 L117 228 L100 222 L83 228 Z" fill="#f5f5f5"/>
+      <polygon points="84,208 100,203 116,208 100,214" fill="#8b0000"/>
+      <ellipse cx="100" cy="208" rx="4" ry="3" fill="#a00000"/>
+      <path d="M78 210 L58 195 L68 182 L83 200 Z" fill="#1a1a28"/>
+      <path d="M122 210 L142 195 L132 182 L117 200 Z" fill="#1a1a28"/>
+      <!-- Very thick neck -->
+      <rect x="78" y="180" width="44" height="32" rx="6" fill="url(#rsg)"/>
+      <!-- Large bald head -->
+      <ellipse cx="100" cy="112" rx="64" ry="74" fill="url(#rsg)"/>
+      <!-- Bald head shine -->
+      <ellipse cx="90" cy="68" rx="30" ry="20" fill="rgba(255,255,255,0.06)"/>
+      <!-- Subtle scalp shadow (no hair) -->
+      <ellipse cx="100" cy="64" rx="62" ry="30" fill="rgba(20,10,5,0.12)"/>
+      <!-- Large ears -->
+      <ellipse cx="40" cy="124" rx="14" ry="18" fill="#6a3a18"/>
+      <ellipse cx="160" cy="124" rx="14" ry="18" fill="#6a3a18"/>
+      <ellipse cx="40" cy="124" rx="8" ry="12" fill="#4a2a0a" opacity="0.5"/>
+      <!-- Heavy brow ridge -->
+      <ellipse cx="100" cy="106" rx="58" ry="16" fill="rgba(0,0,0,0.22)"/>
+      <!-- Eyebrows — massive, furrowed -->
+      <path d="M58 104 Q78 95 96 101" stroke="#2a1808" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+      <path d="M104 101 Q122 95 142 104" stroke="#2a1808" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+      <path d="M96 101 Q100 97 104 101" stroke="#2a1808" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <!-- Face shadows -->
+      <ellipse cx="70" cy="130" rx="22" ry="28" fill="rgba(0,0,0,0.14)"/>
+      <ellipse cx="130" cy="130" rx="22" ry="28" fill="rgba(0,0,0,0.14)"/>
+      <ellipse cx="100" cy="174" rx="55" ry="20" fill="rgba(0,0,0,0.16)"/>
+      <!-- Left eye — small, deep-set, intense -->
+      <ellipse cx="76" cy="120" rx="13" ry="9" fill="white"/>
+      <ellipse cx="76" cy="121" rx="8" ry="7" fill="url(#reg)"/>
+      <ellipse cx="76" cy="121" rx="5" ry="5" fill="#050300"/>
+      <ellipse cx="73" cy="118" rx="1.8" ry="1.8" fill="rgba(255,255,255,0.6)"/>
+      <path d="M63 116 Q76 110 89 116" stroke="#2a1808" stroke-width="2" fill="none"/>
+      <path d="M63 125 Q76 130 89 125" stroke="rgba(30,15,5,0.4)" stroke-width="1" fill="none"/>
+      <path d="M62 116 Q76 112 90 116 Q90 110 76 108 Q62 110 62 116Z" fill="rgba(0,0,0,0.2)"/>
+      <!-- Right eye -->
+      <ellipse cx="124" cy="120" rx="13" ry="9" fill="white"/>
+      <ellipse cx="124" cy="121" rx="8" ry="7" fill="url(#reg)"/>
+      <ellipse cx="124" cy="121" rx="5" ry="5" fill="#050300"/>
+      <ellipse cx="121" cy="118" rx="1.8" ry="1.8" fill="rgba(255,255,255,0.6)"/>
+      <path d="M111 116 Q124 110 137 116" stroke="#2a1808" stroke-width="2" fill="none"/>
+      <path d="M111 125 Q124 130 137 125" stroke="rgba(30,15,5,0.4)" stroke-width="1" fill="none"/>
+      <path d="M110 116 Q124 112 138 116 Q138 110 124 108 Q110 110 110 116Z" fill="rgba(0,0,0,0.2)"/>
+      <!-- Broad nose -->
+      <path d="M100 134 L90 158 Q100 166 110 158 Z" fill="rgba(60,30,10,0.5)"/>
+      <ellipse cx="90" cy="158" rx="10" ry="7" fill="rgba(55,28,8,0.4)"/>
+      <ellipse cx="110" cy="158" rx="10" ry="7" fill="rgba(55,28,8,0.4)"/>
+      <path d="M96 134 L96 158" stroke="rgba(50,25,8,0.2)" stroke-width="2" fill="none"/>
+      <!-- Mouth — slight sneer -->
+      <path d="M80 170 Q100 167 120 170" stroke="#5a3010" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M80 170 Q78 167 80 165" stroke="#5a3010" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <!-- GOLD TOOTH -->
+      <path d="M94 172 Q100 176 106 172" fill="rgba(0,0,0,0.6)"/>
+      <rect x="97" y="172" width="6" height="4" rx="1" fill="#d4af37" opacity="0.9"/>
+      <rect x="97.5" y="172" width="2.5" height="1.5" rx="0.5" fill="rgba(255,255,180,0.5)"/>
+      <!-- Stubble dots -->
+      <g fill="rgba(25,12,5,0.35)">
+        <circle cx="84" cy="163" r="1.5"/><circle cx="90" cy="166" r="1.3"/><circle cx="96" cy="168" r="1.5"/>
+        <circle cx="104" cy="168" r="1.3"/><circle cx="110" cy="166" r="1.5"/><circle cx="116" cy="163" r="1.5"/>
+        <circle cx="80" cy="168" r="1.2"/><circle cx="120" cy="168" r="1.2"/>
+        <circle cx="82" cy="158" r="1"/><circle cx="118" cy="158" r="1"/>
+      </g>
+    `
+  }
+];
+
+// ════════════════════════════════════════════════════════
+//  DEALER PANEL LOGIC
+// ════════════════════════════════════════════════════════
+function openDealerPanel() {
+  document.getElementById('dpOverlay').classList.add('open');
+  document.getElementById('dpPanel').classList.add('open');
+}
+
+function closeDealerPanel() {
+  document.getElementById('dpOverlay').classList.remove('open');
+  document.getElementById('dpPanel').classList.remove('open');
+}
+
+function selectDealer(id) {
+  const dealer = DEALERS.find(d => d.id === id);
+  if (!dealer) return;
+
+  if (id === 'viktor') {
+    document.getElementById('portraitSvgEl').innerHTML = viktorSvgCache;
+  } else {
+    document.getElementById('portraitSvgEl').innerHTML = dealer.mainSvg;
+  }
+  document.getElementById('dealerNameTag').textContent = dealer.name;
+  activeDealerId = id;
+  renderDealerPanel();
+  closeDealerPanel();
+}
+
+function renderDealerPanel() {
+  const list = document.getElementById('dpList');
+  list.innerHTML = '';
+  DEALERS.forEach(d => {
+    const card = document.createElement('div');
+    card.className = 'dp-card' + (d.id === activeDealerId ? ' dp-selected' : '');
+    card.onclick = () => selectDealer(d.id);
+    card.innerHTML = `
+      <div class="dp-thumb">${d.thumb}</div>
+      <div class="dp-info">
+        <div class="dp-name">${d.name}</div>
+        <div class="dp-title-tag">${d.titleTag}</div>
+        <div class="dp-desc">${d.desc}</div>
+      </div>
+      <div class="dp-selected-badge">✓</div>`;
+    list.appendChild(card);
+  });
+}
+
+// Init dealer panel
+viktorSvgCache = document.getElementById('portraitSvgEl').innerHTML;
+renderDealerPanel();
+
+// ════════════════════════════════════════════════════════
+//  DEALER PHRASES
+// ════════════════════════════════════════════════════════
+const DEALER_PHRASES = {
+  viktor: {
+    // dealer wins
+    win:  [
+      "The house always wins.",
+      "Did you really think you could beat me?",
+      "Your chips. My table.",
+      "Walk away while you still can.",
+      "Predictable.",
+      "Come back when you have more to lose.",
+      "Every hand tells the same story."
+    ],
+    // player wins (dealer loses)
+    lose: [
+      "Enjoy it. It won't last.",
+      "Lucky. For now.",
+      "Take it. You earned nothing.",
+      "Don't get comfortable.",
+      "I've seen better streaks end worse.",
+      "...Fine."
+    ],
+    push: [
+      "We're even. For now.",
+      "A draw. How... disappointing.",
+      "Neither of us gains. Neither loses. Fitting."
+    ],
+    bj: [
+      "...Impressive.",
+      "A fluke.",
+      "Don't let it go to your head.",
+      "One hand. Don't celebrate yet."
+    ]
+  },
+  isabella: {
+    win: [
+      "Better luck next time, darling.",
+      "The cards don't lie. And neither do I.",
+      "Such a pity. You almost had it.",
+      "My table. My rules.",
+      "Did you dress up just to lose?",
+      "Fortune favours those who deserve it.",
+      "Elegance wins. Always."
+    ],
+    lose: [
+      "Enjoy your moment. It's brief.",
+      "You surprise me. Slightly.",
+      "A credit to you, truly.",
+      "Keep going. I'm curious to see where this ends.",
+      "Well played... this time.",
+      "Interesting."
+    ],
+    push: [
+      "Equal footing. For now.",
+      "We dance, but no one leads.",
+      "A tie is just a polite way to disagree.",
+      "Curious."
+    ],
+    bj: [
+      "Magnifico.",
+      "The cards chose you tonight.",
+      "Don't waste such luck.",
+      "Even I can appreciate that.",
+      "Brava."
+    ]
+  },
+  marcel: {
+    win: [
+      "C'est la vie, mon ami.",
+      "The cards have spoken.",
+      "Experience over enthusiasm. Always.",
+      "In thirty years, it never changes.",
+      "Désolé.",
+      "The house does not sleep.",
+      "A lesson in patience."
+    ],
+    lose: [
+      "Extraordinary.",
+      "You remind me of someone. He did well too. For a while.",
+      "Beginner's fortune.",
+      "Bon.",
+      "The young can still surprise an old man.",
+      "I underestimated you. Rarely happens."
+    ],
+    push: [
+      "A perfect balance. Like life itself.",
+      "Neither wins. Neither loses. Très Français.",
+      "Equilibrium. The table breathes.",
+      "We are even, as the universe intended."
+    ],
+    bj: [
+      "Magnifique!",
+      "The cards blessed you, mon ami.",
+      "In thirty years... still beautiful to witness.",
+      "Ah. A perfect hand. Respect.",
+      "Extraordinaire."
+    ]
+  },
+  kai: {
+    win: [
+      "...",
+      "Expected.",
+      "Next.",
+      "The odds were always mine.",
+      "You never had a chance.",
+      "Calculated.",
+      "The cards do not lie."
+    ],
+    lose: [
+      "...",
+      "Noted.",
+      "Acceptable.",
+      "Do not misread this.",
+      "Once.",
+      "I will adjust.",
+      "Interesting variance."
+    ],
+    push: [
+      "...",
+      "Balance.",
+      "Zero sum.",
+      "The table is neutral."
+    ],
+    bj: [
+      "...",
+      "Acceptable.",
+      "Fortune favors. Today.",
+      "Statistically unlikely.",
+      "...Well played."
+    ]
+  },
+  rex: {
+    win: [
+      "Ha.",
+      "Nobody beats Rex.",
+      "That's my money now.",
+      "Don't cry about it.",
+      "I've taken bigger stacks from bigger players.",
+      "Sit down. Next hand.",
+      "Easy money."
+    ],
+    lose: [
+      "You got lucky. Don't push it.",
+      "Fine. Take it.",
+      "That won't happen twice.",
+      "Hmph.",
+      "I'll get it back. I always do.",
+      "Enjoy it while it lasts."
+    ],
+    push: [
+      "Nobody wins. I respect that.",
+      "We tied. I don't like ties.",
+      "Take your money and go.",
+      "A draw. Rex doesn't draw."
+    ],
+    bj: [
+      "...Nice hand.",
+      "Heh. You got me.",
+      "One time. Won't happen again.",
+      "...Respect.",
+      "Lucky."
+    ]
+  }
+};
+
+let _quoteTimer = null;
+
+function showDealerPhrase(outcome) {
+  const phrases = DEALER_PHRASES[activeDealerId];
+  if (!phrases) return;
+
+  // outcome from player's perspective: 'win'/'blackjack' = player won (dealer lost)
+  let pool;
+  if (outcome === 'blackjack') pool = phrases.bj;
+  else if (outcome === 'win')  pool = phrases.lose;  // dealer lost
+  else if (outcome === 'lose') pool = phrases.win;   // dealer won
+  else                          pool = phrases.push;
+
+  const phrase = pool[Math.floor(Math.random() * pool.length)];
+  const el = document.getElementById('dealerQuote');
+  const dealerName = (DEALERS.find(d => d.id === activeDealerId) || DEALERS[0]).name;
+
+  // Clear existing
+  clearTimeout(_quoteTimer);
+  el.classList.remove('show');
+
+  setTimeout(() => {
+    el.textContent = '“' + phrase + '”';
+    el.classList.add('show');
+    _quoteTimer = setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(() => { if (!el.classList.contains('show')) el.textContent = ''; }, 500);
+    }, 4000);
+  }, 80);
+}
+
+// ════════════════════════════════════════════════════════
+//  RULES PANEL TOGGLE
+// ════════════════════════════════════════════════════════
+function toggleRules() {
+  const btn     = document.getElementById('rulesToggleBtn');
+  const panel   = document.getElementById('rulesPanel');
+  const overlay = document.getElementById('rulesOverlay');
+  const open    = panel.classList.toggle('open');
+  overlay.classList.toggle('open', open);
+  btn.classList.toggle('open', open);
+}
+
+// Hide dealer quote on new round
+const _origNewRound = newRound;
+newRound = function() {
+  const el = document.getElementById('dealerQuote');
+  if (el) { el.classList.remove('show'); clearTimeout(_quoteTimer); }
+  _origNewRound();
+};
+</script>
+</body>
+</html>
