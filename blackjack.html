@@ -111,6 +111,11 @@ body {
 }
 .hand-score.bust { color:#ff4444 !important; text-shadow:0 0 10px rgba(255,68,68,0.7) !important; }
 .hand-score.bj   { color:#fff !important; text-shadow:0 0 20px rgba(255,220,50,1) !important; animation:bjGlow 0.8s ease infinite alternate; }
+.hand-bet-label {
+  font-size:0.56rem; letter-spacing:0.18em; color:rgba(212,175,55,0.5);
+  text-transform:uppercase; font-family:'Montserrat',sans-serif; font-weight:600;
+  min-height:0.9rem; text-align:center;
+}
 @keyframes bjGlow { from{text-shadow:0 0 10px rgba(255,220,50,0.6);} to{text-shadow:0 0 30px rgba(255,220,50,1),0 0 60px rgba(255,220,50,0.5);} }
 
 /* SHOE */
@@ -775,23 +780,21 @@ body {
             <ellipse cx="78" cy="117" rx="6" ry="6" fill="#0d0805"/>
             <ellipse cx="74" cy="113" rx="2.5" ry="2.5" fill="rgba(255,255,255,0.65)"/>
             <path d="M62 112 Q78 106 94 112" stroke="#3d2010" stroke-width="1.5" fill="none"/>
-            <path d="M63 122 Q78 128 93 122" stroke="rgba(61,32,16,0.4)" stroke-width="1" fill="none"/>
+            <path d="M63 123 Q78 124 93 123" stroke="rgba(61,32,16,0.3)" stroke-width="1" fill="none"/>
             <!-- Right eye -->
             <ellipse cx="122" cy="116" rx="16" ry="11" fill="white"/>
             <ellipse cx="122" cy="117" rx="10" ry="9" fill="url(#eg)"/>
             <ellipse cx="122" cy="117" rx="6" ry="6" fill="#0d0805"/>
             <ellipse cx="118" cy="113" rx="2.5" ry="2.5" fill="rgba(255,255,255,0.65)"/>
             <path d="M106 112 Q122 106 138 112" stroke="#3d2010" stroke-width="1.5" fill="none"/>
-            <path d="M107 122 Q122 128 137 122" stroke="rgba(61,32,16,0.4)" stroke-width="1" fill="none"/>
+            <path d="M107 123 Q122 124 137 123" stroke="rgba(61,32,16,0.3)" stroke-width="1" fill="none"/>
             <!-- Nose -->
             <path d="M100 128 L93 152 Q100 158 107 152 Z" fill="rgba(120,70,35,0.45)"/>
             <ellipse cx="93" cy="152" rx="7" ry="5" fill="rgba(100,55,25,0.35)"/>
             <ellipse cx="107" cy="152" rx="7" ry="5" fill="rgba(100,55,25,0.35)"/>
-            <!-- Mouth -->
-            <path d="M82 168 Q100 164 118 168" stroke="#7a4020" stroke-width="2" fill="none" stroke-linecap="round"/>
-            <path d="M84 171 Q100 174 116 171" stroke="rgba(90,40,20,0.4)" stroke-width="1" fill="none" stroke-linecap="round"/>
-            <path d="M82 168 L78 172" stroke="#7a4020" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-            <path d="M118 168 L122 172" stroke="#7a4020" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <!-- Mouth — flat, neutral, cold -->
+            <path d="M82 168 Q100 166 118 168" stroke="#7a4020" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M84 171 Q100 172 116 171" stroke="rgba(90,40,20,0.35)" stroke-width="1" fill="none" stroke-linecap="round"/>
             <!-- Stubble -->
             <ellipse cx="100" cy="170" rx="32" ry="18" fill="rgba(20,10,5,0.08)"/>
             <g fill="rgba(30,15,5,0.22)">
@@ -799,15 +802,14 @@ body {
               <circle cx="105" cy="168" r="1"/><circle cx="110" cy="166" r="1.2"/><circle cx="115" cy="163" r="1"/>
               <circle cx="83" cy="168" r="1"/><circle cx="117" cy="168" r="1"/><circle cx="100" cy="170" r="1.2"/>
             </g>
-            <!-- SCAR -->
-            <path d="M75 130 L58 168" stroke="rgba(80,35,15,0.7)" stroke-width="4" fill="none" stroke-linecap="round" filter="url(#sb)"/>
-            <path d="M75 130 L58 168" stroke="#d4a882" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-            <path d="M76 131 L59 169" stroke="rgba(255,220,190,0.6)" stroke-width="1" fill="none" stroke-linecap="round"/>
-            <line x1="72" y1="137" x2="68" y2="135" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
-            <line x1="70" y1="143" x2="66" y2="141" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
-            <line x1="67" y1="150" x2="63" y2="148" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
-            <line x1="64" y1="157" x2="60" y2="155" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
-            <path d="M67 149 L64 153 L60 155" stroke="#d4a882" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- SCAR — starts on cheekbone, not at eye -->
+            <path d="M72 140 L56 172" stroke="rgba(80,35,15,0.7)" stroke-width="4" fill="none" stroke-linecap="round" filter="url(#sb)"/>
+            <path d="M72 140 L56 172" stroke="#d4a882" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <path d="M73 141 L57 173" stroke="rgba(255,220,190,0.6)" stroke-width="1" fill="none" stroke-linecap="round"/>
+            <line x1="69" y1="147" x2="65" y2="145" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="66" y1="154" x2="62" y2="152" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="63" y1="161" x2="59" y2="159" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="60" y1="167" x2="56" y2="165" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
           </svg>
         </div>
         <div class="dealer-name" id="dealerNameTag">Viktor</div>
@@ -906,7 +908,7 @@ body {
   <button class="act-btn btn-hit"    id="hitBtn"    onclick="playerHit()">Hit</button>
   <button class="act-btn btn-stand"  id="standBtn"  onclick="playerStand()">Stand</button>
   <button class="act-btn btn-double" id="doubleBtn" onclick="playerDouble()">Double</button>
-  <button class="act-btn btn-split"  id="splitBtn"  onclick="playerSplit()" style="display:none;">Split</button>
+  <button class="act-btn btn-split"  id="splitBtn"  onclick="playerSplit()">Split</button>
 </div>
 
 <!-- NEW ROUND PANEL -->
@@ -970,6 +972,7 @@ body {
     <div class="rules-row"><div class="rules-key">H</div><div class="rules-val">Hit</div></div>
     <div class="rules-row"><div class="rules-key">S</div><div class="rules-val">Stand</div></div>
     <div class="rules-row"><div class="rules-key">D</div><div class="rules-val">Double Down</div></div>
+    <div class="rules-row"><div class="rules-key">P</div><div class="rules-val">Split (when available)</div></div>
     <div class="rules-row"><div class="rules-key">1 – 4</div><div class="rules-val">Add chips ($5 / $25 / $100 / $500)</div></div>
     <div class="rules-row"><div class="rules-key">Enter</div><div class="rules-val">Deal cards / Start new round</div></div>
   </div>
@@ -1269,8 +1272,9 @@ async function afterInsurance() {
   if (pBJ) {
     // Reveal hole card
     await sleep(300);
-    revealHole();
-    await sleep(400);
+    SFX.flip();
+    await revealHole();
+    await sleep(120);
     const dBJ = isBlackjack(dealerHand);
 
     // Resolve insurance
@@ -1322,13 +1326,12 @@ function refreshActionButtons() {
   // Double: only on first two cards and if can afford
   document.getElementById('doubleBtn').disabled = hand.length !== 2 || bank < bet;
 
-  // Split: same rank, first two cards, up to 4 hands, can afford
+  // Split: same value, first two cards, up to 4 hands, can afford
   const canSplit = hand.length === 2 &&
-    hand[0].rank === hand[1].rank &&
+    cardNum(hand[0]) === cardNum(hand[1]) &&
     playerHands.length < 4 &&
     bank >= bet;
   const splitBtn = document.getElementById('splitBtn');
-  splitBtn.style.display = canSplit ? '' : 'none';
   splitBtn.disabled = !canSplit;
 }
 
@@ -1366,8 +1369,8 @@ async function playerDouble() {
   bank -= bet;
   handBets[currentHandIdx] *= 2;
   updateBankDisplay();
-  // Update bet display
   document.getElementById('betDisplay').textContent = '$' + handBets.reduce((a,b)=>a+b,0).toLocaleString();
+  updateHandBetLabels();
   lockActions();
   await addCard('player', currentHandIdx, false);
   renderAll();
@@ -1390,7 +1393,10 @@ async function playerSplit() {
   playerHands.splice(currentHandIdx+1, 0, [splitted]);
   handBets.splice(currentHandIdx+1, 0, bet);
 
+  document.getElementById('betDisplay').textContent = '$' + handBets.reduce((a,b)=>a+b,0).toLocaleString();
+
   rebuildHandDivs();
+  updateHandBetLabels();
 
   await addCard('player', currentHandIdx, false);   await sleep(180);
   await addCard('player', currentHandIdx+1, false);
@@ -1430,9 +1436,18 @@ async function startDealerTurn() {
   gamePhase = 'dealer';
   document.getElementById('actionPanel').style.display = 'none';
 
-  revealHole();
+  // If every player hand busted, settle immediately — no reveal, no dealer draw
+  const allBust = playerHands.every(h => isBust(h));
+  if (allBust) {
+    const results = playerHands.map((_, i) => ({ result: 'lose', idx: i }));
+    settleRound(results);
+    endRound('bust');
+    return;
+  }
+
   SFX.flip();
-  await sleep(500);
+  await revealHole();
+  await sleep(120);
 
   // Resolve insurance if dealer BJ
   if (insuranceBet > 0 && isBlackjack(dealerHand)) {
@@ -1440,26 +1455,60 @@ async function startDealerTurn() {
     updateBankDisplay();
   }
 
-  // All hands bust? Skip dealer draw
-  const allBust = playerHands.every(h => isBust(h));
-  if (!allBust) {
-    // Dealer draws until hard 17+ (hits on soft 17)
-    while (handVal(dealerHand) < 17 || (isSoft(dealerHand) && handVal(dealerHand) === 17)) {
-      await sleep(520);
-      dealerHand.push(drawCard(false));
-      renderDealerCards();
-      SFX.card();
-      updateScoreDisplay();
-    }
+  // Dealer draws until hard 17+ (hits on soft 17)
+  while (handVal(dealerHand) < 17 || (isSoft(dealerHand) && handVal(dealerHand) === 17)) {
+    await sleep(520);
+    dealerHand.push(drawCard(false));
+    renderDealerCards();
+    SFX.card();
+    updateScoreDisplay();
   }
 
   await sleep(420);
   resolveAllHands();
 }
 
-function revealHole() {
-  if (dealerHand.length > 1) dealerHand[1].hidden = false;
-  renderDealerCards();
+async function revealHole() {
+  if (dealerHand.length <= 1) return;
+  const card = dealerHand[1];
+
+  // Find the hole card DOM element (index 1 in dealer row)
+  const row = document.getElementById('dealerCards');
+  const holeEl = row ? row.querySelectorAll('.card')[1] : null;
+
+  if (!holeEl) {
+    card.hidden = false;
+    renderDealerCards();
+    updateScoreDisplay();
+    return;
+  }
+
+  // Phase 1 — rotate away (back disappears)
+  holeEl.style.transition = 'transform 0.26s ease-in';
+  holeEl.style.transform  = 'perspective(500px) rotateY(90deg)';
+  await sleep(270);
+
+  // Swap to face content at the invisible midpoint
+  card.hidden = false;
+  const isRed = card.suit === '♥' || card.suit === '♦';
+  holeEl.className = 'card' + (isRed ? ' red' : '');
+  holeEl.innerHTML = `
+    <div class="card-face">
+      <div class="card-rank-top">${card.rank}</div>
+      <div class="card-suit-top">${card.suit}</div>
+      <div class="card-center">${card.suit}</div>
+      <div class="card-suit-bot">${card.suit}</div>
+      <div class="card-rank-bot">${card.rank}</div>
+    </div>`;
+
+  // Phase 2 — snap to -90° then ease back to 0° (face appears)
+  holeEl.style.transition = 'none';
+  holeEl.style.transform  = 'perspective(500px) rotateY(-90deg)';
+  await sleep(16);
+  holeEl.style.transition = 'transform 0.26s ease-out';
+  holeEl.style.transform  = 'perspective(500px) rotateY(0deg)';
+  await sleep(280);
+
   updateScoreDisplay();
 }
 
@@ -1540,15 +1589,17 @@ function endRound(outcome) {
     blackjack: '★ BLACKJACK! ★',
     win:   'You Win!',
     lose:  dealerName + ' Wins',
+    bust:  'Bust — ' + dealerName + ' Wins',
     push:  'Push — Bet Returned',
   };
   const msgEl = document.getElementById('gameMessage');
-  msgEl.textContent = msgs[outcome];
-  msgEl.className   = 'game-message ' + (outcome==='push' ? 'push' : outcome==='lose' ? 'lose' : 'win');
+  msgEl.textContent = msgs[outcome] || msgs.lose;
+  msgEl.className   = 'game-message ' + (outcome==='push' ? 'push' : (outcome==='lose'||outcome==='bust') ? 'lose' : 'win');
 
   if (outcome==='blackjack') { SFX.bj();   confetti(70); flashScreen('win'); }
   else if (outcome==='win')  { SFX.win();  confetti(35); flashScreen('win'); }
   else if (outcome==='push') { SFX.push(); }
+  else if (outcome==='bust') { flashScreen('lose'); }
   else                        { SFX.lose(); flashScreen('lose'); }
 
   document.getElementById('newRoundPanel').style.display = '';
@@ -1701,7 +1752,7 @@ function clearAllCards() {
 function rebuildHandDivs(single=false) {
   const row = document.getElementById('playerHandsRow');
   if (single) {
-    row.innerHTML = `<div class="hand-wrap" id="handWrap0"><div class="cards-row" id="playerCards0"></div><div class="hand-score" id="playerScore0"></div></div>`;
+    row.innerHTML = `<div class="hand-wrap" id="handWrap0"><div class="cards-row" id="playerCards0"></div><div class="hand-score" id="playerScore0"></div><div class="hand-bet-label" id="handBet0"></div></div>`;
     if (!single) return;
     playerHands = [[]];
     handBets    = [currentBet];
@@ -1712,7 +1763,7 @@ function rebuildHandDivs(single=false) {
     const d = document.createElement('div');
     d.className = 'hand-wrap' + (i===currentHandIdx ? ' active-hand' : '');
     d.id = 'handWrap'+i;
-    d.innerHTML = `<div class="cards-row" id="playerCards${i}"></div><div class="hand-score" id="playerScore${i}"></div>`;
+    d.innerHTML = `<div class="cards-row" id="playerCards${i}"></div><div class="hand-score" id="playerScore${i}"></div><div class="hand-bet-label" id="handBet${i}"></div>`;
     row.appendChild(d);
   });
 }
@@ -1720,6 +1771,14 @@ function rebuildHandDivs(single=false) {
 function highlightHand() {
   document.querySelectorAll('.hand-wrap').forEach((el, i) => {
     el.classList.toggle('active-hand', i===currentHandIdx);
+  });
+}
+
+function updateHandBetLabels() {
+  playerHands.forEach((_, i) => {
+    const el = document.getElementById('handBet'+i);
+    if (!el) return;
+    el.textContent = playerHands.length > 1 ? 'Bet: $' + handBets[i].toLocaleString() : '';
   });
 }
 
@@ -1831,6 +1890,7 @@ document.addEventListener('keydown', e => {
     if (k==='h') playerHit();
     if (k==='s') playerStand();
     if (k==='d') playerDouble();
+    if (k==='p') playerSplit();
   }
   if (gamePhase==='betting') {
     if (k==='enter') startDeal();
@@ -1889,9 +1949,10 @@ const DEALERS = [
       <ellipse cx="78" cy="117" rx="6" ry="6" fill="#1a0f0a"/>
       <ellipse cx="122" cy="116" rx="16" ry="11" fill="white"/>
       <ellipse cx="122" cy="117" rx="6" ry="6" fill="#1a0f0a"/>
-      <path d="M82 168 Q100 164 118 168" stroke="#7a4020" stroke-width="2" fill="none" stroke-linecap="round"/>
-      <path d="M75 130 L58 168" stroke="#d4a882" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-      <path d="M67 149 L64 153 L60 155" stroke="#d4a882" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M82 168 Q100 166 118 168" stroke="#7a4020" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M72 140 L56 172" stroke="#d4a882" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <line x1="69" y1="147" x2="65" y2="145" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="63" y1="161" x2="59" y2="159" stroke="#c9926a" stroke-width="1.2" stroke-linecap="round"/>
     </svg>`,
     mainSvg: null // loaded from DOM on init
   },
@@ -2575,7 +2636,7 @@ function showDealerPhrase(outcome) {
   let pool;
   if (outcome === 'blackjack') pool = phrases.bj;
   else if (outcome === 'win')  pool = phrases.lose;  // dealer lost
-  else if (outcome === 'lose') pool = phrases.win;   // dealer won
+  else if (outcome === 'lose' || outcome === 'bust') pool = phrases.win;  // dealer won
   else                          pool = phrases.push;
 
   const phrase = pool[Math.floor(Math.random() * pool.length)];
